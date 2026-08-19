@@ -18,13 +18,13 @@ Do not start a phase before the previous one is done and committed.
 - [x] Manual test: refresh real watchlist, verify rows in DB
 
 ## Phase 2 — Core logic (pure functions + tests)
-- [ ] Indicator calculations: changes, 30d avg/high/low, distances, volume vs avg, 14-period Wilder RSI
-- [ ] Entry evaluation (4 conditions, ≥3 → BUY) returning structured checklist
-- [ ] Exit evaluation (target + technicals) returning structured checklist
-- [ ] Precedence rule for owned stocks (exit SELL > entry BUY > WAIT)
-- [ ] Sharp-move warning rule (>5% 1d or >10% 7d)
-- [ ] Position derivation from trades (weighted avg cost, sells, closing at zero)
-- [ ] Unit tests for ALL of the above, including edge cases (insufficient history, zero volume)
+- [x] Indicator calculations: changes, 30d avg/high/low, distances, volume vs avg, 14-period Wilder RSI
+- [x] Entry evaluation (4 conditions, ≥3 → BUY) returning structured checklist
+- [x] Exit evaluation (target + technicals) returning structured checklist
+- [x] Precedence rule for owned stocks (exit SELL > entry BUY > WAIT)
+- [x] Sharp-move warning rule (>5% 1d or >10% 7d)
+- [x] Position derivation from trades (weighted avg cost, sells, closing at zero)
+- [x] Unit tests for ALL of the above, including edge cases (insufficient history, zero volume)
 
 ## Phase 3 — API endpoints
 - [ ] GET /api/stocks (dashboard, server-side sorting per contract)
