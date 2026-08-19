@@ -54,6 +54,36 @@ always decides. No automated trading, no AI features, no black-box scoring.
   (indicators, evaluation, position math are pure functions — test them).
 - Small, focused commits per completed plan item.
 
+
+## UI & Design
+
+### Visual source of truth
+- design/reference/ contains the exported design prototype (plain HTML/CSS/JS).
+  Replicate its look in React: extract its exact colors, fonts, spacing, and
+  radii into the Tailwind config once, and use theme tokens everywhere —
+  never hardcode hex values in components. Never import or copy its code
+  directly; it uses mock data and is reference-only.
+- Badge colors are semantic and fixed: green = BUY/profit, orange = SELL/
+  warning, gray = WAIT/neutral, red only for negative P/L numbers.
+- A suggestion badge is never rendered without its checklist visible nearby.
+- Every page shows the data-freshness timestamp from meta; stale data shows
+  the stale warning.
+
+### Code rules
+- Language: plain JavaScript (no TypeScript). The API client layer carries
+  JSDoc type comments matching docs/api-contract.md so autocomplete works.
+- Structure: ui/src/api/ (client + JSDoc types), pages/ (one folder per page),
+  components/ (shared: badges, cards, charts), lib/ (formatting helpers only).
+- One component per file. A component over ~100 lines must be split.
+- Pages compose components; components render props. Data fetching happens in
+  page-level hooks (TanStack Query), never inside leaf components.
+- All formatting (currency, %, dates, "N to go") lives in lib/format.js —
+  never inline in JSX.
+- No cleverness: no HOCs, no render props, no context unless unavoidable,
+  no premature abstractions. Boring, flat, explicit code.
+- The UI computes nothing: no sorting, no derived flags, no counting —
+  render what the API sends.
+
 ## Don't
 
 - Don't add features outside docs/plan.md without asking.

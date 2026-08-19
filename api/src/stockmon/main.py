@@ -1,3 +1,5 @@
+import sys
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -37,7 +39,11 @@ def handle_stock_not_found_error(request: Request, exc: StockNotFoundError) -> J
 
 
 def main() -> None:
-    uvicorn.run("stockmon.main:app", host="0.0.0.0", port=8000, reload=True)
+    # uvicorn's reload spawns a subprocess by reconstructing sys.argv, which
+    # is PyCharm's pydevd launcher (not this script) when running under the
+    # debugger -- that reconstruction breaks, so disable reload in that case.
+    debugging = "pydevd" in sys.modules or sys.gettrace() is not None
+    uvicorn.run("stockmon.main:app", host="0.0.0.0", port=8000, reload=not debugging)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,509 @@
+<title>Stock Helper</title>
+<style>
+/*__FONT_FACES__*/
+
+:root{
+  /* Monochromatic ramp built from #E2D2AF (antique gold), page held at true white per direction */
+  --bg:#FFFFFF;
+  --surface:#FFFFFF;
+  --surface-sunken:#FAF7F2;
+  --border:#E8E2D4;
+  --border-strong:#CFC4AA;
+  --ink:#252118;
+  --ink-muted:#706751;
+  --ink-faint:#A39985;
+  --accent:#7E6225;
+  --accent-ink:#594418;
+  --accent-soft:#F6F0E5;
+  --good:#0F7B4E;
+  --good-bg:#E6F4ED;
+  --good-border:#BFE3D0;
+  --warn:#B45309;
+  --warn-bg:#FCEEDD;
+  --warn-border:#F3CFA0;
+  --neutral:#6B7280;
+  --neutral-bg:#EEF0F2;
+  --neutral-border:#D8DCE1;
+  --bad:#B91C1C;
+  --radius:10px;
+  --radius-pill:999px;
+  --shadow-card:0 2px 4px rgba(37,33,24,0.05), 0 14px 32px -12px rgba(37,33,24,0.24);
+  --shadow-pop:0 16px 40px rgba(37,33,24,0.16), 0 2px 10px rgba(37,33,24,0.08);
+  color-scheme:light;
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+[hidden]{display:none !important;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:'Public Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  font-size:14px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+h1,h2,h3,p,dl,dd,dt,figure{margin:0;}
+button{font:inherit;color:inherit;}
+a{color:inherit;}
+.num{
+  font-family:'JetBrains Mono',ui-monospace,'SFMono-Regular',Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums;
+  letter-spacing:-0.01em;
+}
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px;}
+
+/* ---------- App bar ---------- */
+.appbar{
+  position:sticky;top:0;z-index:40;
+  background:var(--bg);
+  border-bottom:1px solid var(--border-strong);
+  display:flex;align-items:stretch;gap:32px;
+  padding:0 28px;height:60px;
+}
+.appbar__brand{display:flex;align-items:center;font-weight:700;font-size:15px;letter-spacing:-0.01em;white-space:nowrap;}
+.appbar__nav{display:flex;gap:26px;flex:1;align-items:stretch;}
+.appbar__tab{
+  appearance:none;background:none;cursor:pointer;
+  border:none;border-bottom:2px solid transparent;margin-bottom:-1px;
+  padding:0 1px;display:flex;align-items:center;height:100%;
+  font-size:13.5px;font-weight:600;color:var(--ink-muted);
+}
+.appbar__tab:hover{color:var(--ink);}
+.appbar__tab[aria-current="page"]{color:var(--ink);border-bottom-color:var(--accent);}
+.appbar__meta{display:flex;align-items:center;gap:10px;white-space:nowrap;}
+.freshness{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-muted);}
+.freshness__dot{width:7px;height:7px;border-radius:50%;background:var(--good);flex:none;}
+.freshness__dot.is-refreshing{background:var(--accent);animation:pulse 1.4s ease-in-out infinite;}
+.freshness__dot.is-stale{background:var(--warn);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+@media (prefers-reduced-motion:reduce){.freshness__dot.is-refreshing{animation:none;}}
+
+/* ---------- Global stale banner ---------- */
+.global-banner{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 28px;
+  background:var(--warn-bg);
+  border-bottom:1px solid var(--warn-border);
+  color:#7C3D08;
+  font-size:13px;font-weight:500;
+}
+.global-banner svg{flex:none;width:18px;height:18px;color:var(--warn);}
+.global-banner strong{font-weight:700;}
+
+/* ---------- Layout ---------- */
+main{max-width:1360px;margin:0 auto;padding:28px 28px 80px;}
+.page{display:none;}
+.page.is-active{display:block;}
+.page-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:20px;flex-wrap:wrap;}
+.page-head h1{font-size:21px;font-weight:700;letter-spacing:-0.01em;}
+.page-head__sub{font-size:13px;color:var(--ink-muted);}
+
+/* ---------- Summary strip ---------- */
+.summary-strip{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:1px;background:var(--border);
+  border:1px solid var(--border);border-radius:var(--radius);
+  overflow:hidden;margin-bottom:24px;
+}
+.summary-tile{background:var(--surface);padding:16px 20px;}
+.summary-tile__label{font-size:12px;color:var(--ink-muted);font-weight:600;margin-bottom:6px;}
+.summary-tile__value{font-size:22px;font-weight:600;letter-spacing:-0.01em;}
+.summary-tile__sub{font-size:12.5px;margin-top:3px;color:var(--ink-muted);}
+.pl-pos{color:var(--good);}
+.pl-neg{color:var(--bad);}
+
+/* ---------- Badges ---------- */
+.badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 11px;border-radius:var(--radius-pill);
+  font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.03em;
+  border:1px solid transparent;white-space:nowrap;
+}
+.badge--buy{background:var(--good-bg);color:var(--good);border-color:var(--good-border);}
+.badge--sell{background:var(--warn-bg);color:var(--warn);border-color:var(--warn-border);}
+.badge--wait{background:var(--neutral-bg);color:var(--neutral);border-color:var(--neutral-border);}
+.badge--insufficient{background:var(--surface-sunken);color:var(--ink-muted);border-color:var(--border-strong);}
+.badge--lg{padding:7px 16px;font-size:13px;gap:7px;}
+.badge svg{width:13px;height:13px;}
+.badge--lg svg{width:15px;height:15px;}
+
+/* ---------- Change / trend ---------- */
+.trend{display:inline-flex;align-items:center;gap:3px;font-weight:600;}
+.trend svg{width:12px;height:12px;}
+.trend.is-up{color:var(--good);}
+.trend.is-down{color:var(--bad);}
+.trend.is-flat{color:var(--ink-muted);}
+
+/* ---------- Table ---------- */
+.table-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card);overflow:hidden;}
+.table-scroll{overflow-x:auto;}
+table.grid{width:100%;border-collapse:collapse;}
+table.grid thead th{
+  text-align:left;font-size:11.5px;font-weight:700;color:var(--ink-muted);
+  text-transform:uppercase;letter-spacing:0.04em;
+  padding:11px 18px;background:var(--surface-sunken);border-bottom:1px solid var(--border);
+}
+table.grid td{padding:13px 18px;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.grid tbody tr:last-child td{border-bottom:none;}
+table.grid td.num,table.grid th.num{text-align:right;}
+.row-clickable{cursor:pointer;}
+.row-clickable:hover{background:var(--surface-sunken);}
+.row-clickable:focus-visible{outline:2px solid var(--accent);outline-offset:-2px;}
+.stock-id{display:flex;align-items:center;gap:9px;}
+.stock-id__ticker{font-weight:700;font-size:13.5px;}
+.stock-id__name{color:var(--ink-muted);font-size:12.5px;}
+.warn-flag{display:inline-flex;color:var(--warn);flex:none;}
+.warn-flag svg{width:15px;height:15px;}
+.dash{color:var(--ink-faint);}
+
+/* ---------- Buttons ---------- */
+.btn{
+  appearance:none;border:1px solid var(--border-strong);background:var(--surface);
+  border-radius:8px;padding:9px 16px;font-size:13.5px;font-weight:600;cursor:pointer;
+  display:inline-flex;align-items:center;gap:7px;white-space:nowrap;
+}
+.btn:hover{background:var(--surface-sunken);}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent-ink);}
+.btn-ghost{border-color:transparent;background:transparent;}
+.btn-ghost:hover{background:var(--surface-sunken);}
+.btn svg{width:15px;height:15px;}
+.btn:active{transform:translateY(1px);}
+
+/* ---------- Detail: header ---------- */
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-muted);background:none;border:none;cursor:pointer;padding:4px 0;margin-bottom:14px;}
+.back-link:hover{color:var(--ink);}
+.back-link svg{width:14px;height:14px;}
+
+.detail-head{
+  display:grid;grid-template-columns:1.05fr 1.4fr;gap:28px;
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+  padding:22px 26px;box-shadow:var(--shadow-card);margin-bottom:16px;
+}
+.detail-head__id{display:flex;align-items:baseline;gap:10px;margin-bottom:2px;flex-wrap:wrap;}
+.detail-head__ticker{font-size:19px;font-weight:700;letter-spacing:-0.01em;}
+.detail-head__name{color:var(--ink-muted);font-size:13.5px;}
+.detail-head__pricerow{display:flex;align-items:baseline;gap:12px;margin:8px 0 14px;flex-wrap:wrap;}
+.detail-head__price{font-size:36px;font-weight:600;letter-spacing:-0.02em;}
+.detail-head__badgewrap{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.detail-head__timestamp{font-size:12px;color:var(--ink-muted);margin-top:14px;}
+
+.checklist-box{border-left:1px solid var(--border);padding-left:26px;}
+.checklist-box__title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;color:var(--ink-muted);margin-bottom:10px;}
+.checklist{display:flex;flex-direction:column;gap:9px;}
+.checklist li{display:flex;align-items:flex-start;gap:9px;font-size:13.5px;line-height:1.4;list-style:none;}
+.checklist__icon{flex:none;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-top:1px;}
+.checklist__icon svg{width:11px;height:11px;}
+.checklist li.is-pass .checklist__icon{background:var(--good-bg);color:var(--good);}
+.checklist li.is-fail .checklist__icon{background:var(--surface-sunken);color:var(--ink-faint);}
+.checklist li.is-fail{color:var(--ink-muted);}
+
+.insufficient-box{
+  display:flex;align-items:center;gap:14px;
+  background:var(--surface-sunken);border:1px dashed var(--border-strong);border-radius:8px;
+  padding:16px 18px;
+}
+.insufficient-box svg{flex:none;width:22px;height:22px;color:var(--ink-faint);}
+.insufficient-box__title{font-weight:700;font-size:13.5px;margin-bottom:2px;}
+.insufficient-box__sub{font-size:12.5px;color:var(--ink-muted);}
+
+/* ---------- Warning banner (per-stock) ---------- */
+.warn-banner{
+  display:flex;align-items:flex-start;gap:11px;
+  background:var(--warn-bg);border:1px solid var(--warn-border);border-radius:var(--radius);
+  padding:13px 16px;margin-bottom:16px;
+}
+.warn-banner svg{flex:none;width:18px;height:18px;color:var(--warn);margin-top:1px;}
+.warn-banner__title{font-weight:700;font-size:13.5px;color:#7C3D08;}
+.warn-banner__sub{font-size:12.5px;color:#8A4A0F;margin-top:2px;}
+
+/* ---------- Detail body grid ---------- */
+.detail-body{display:grid;grid-template-columns:1.55fr 1fr;gap:16px;align-items:start;}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-card);padding:20px 22px;}
+.panel + .panel{margin-top:16px;}
+.panel__title{font-size:13.5px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;}
+.panel__title-sub{font-size:12px;font-weight:500;color:var(--ink-muted);}
+
+/* ---------- Charts ---------- */
+.chart-legend{display:flex;gap:16px;font-size:12px;color:var(--ink-muted);margin-bottom:2px;}
+.chart-legend__item{display:flex;align-items:center;gap:6px;}
+.chart-legend__swatch{width:14px;height:2px;border-radius:1px;flex:none;}
+.chart-wrap{position:relative;}
+.chart-tooltip{
+  position:absolute;pointer-events:none;background:var(--ink);color:#fff;
+  padding:7px 10px;border-radius:7px;font-size:12px;line-height:1.4;
+  transform:translate(-50%,-100%);white-space:nowrap;opacity:0;transition:opacity .08s;
+  box-shadow:var(--shadow-pop);z-index:5;
+}
+.chart-tooltip.is-visible{opacity:1;}
+.chart-tooltip__row{display:flex;gap:8px;justify-content:space-between;}
+.chart-tooltip__dim{color:#B8BEC9;}
+svg.chart-svg{display:block;width:100%;height:auto;overflow:visible;}
+.chart-empty{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+  height:200px;color:var(--ink-faint);font-size:13px;text-align:center;
+}
+.chart-empty svg{width:26px;height:26px;color:var(--ink-faint);}
+
+/* ---------- Indicators table ---------- */
+.indicators{display:grid;grid-template-columns:1fr 1fr;gap:0 32px;}
+.indicators dl{display:flex;flex-direction:column;}
+.indicators .ind-row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--border);gap:12px;}
+.indicators .ind-row:last-child{border-bottom:none;}
+.ind-row dt{font-size:12.5px;color:var(--ink-muted);}
+.ind-row dd{margin:0;font-size:13.5px;font-weight:600;white-space:nowrap;}
+
+/* ---------- Position card ---------- */
+.position-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 20px;margin-bottom:16px;}
+.position-item__label{font-size:11.5px;color:var(--ink-muted);font-weight:600;margin-bottom:3px;}
+.position-item__value{font-size:15px;font-weight:600;}
+.progress-block{border-top:1px solid var(--border);padding-top:14px;}
+.progress-block__row{display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:7px;}
+.progress-block__row strong{font-size:13px;color:var(--ink);}
+.progress-track{height:8px;border-radius:var(--radius-pill);background:var(--surface-sunken);overflow:hidden;}
+.progress-fill{height:100%;border-radius:var(--radius-pill);background:var(--good);}
+
+/* ---------- News block ---------- */
+.news-links{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;}
+.news-link{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border:1px solid var(--border);border-radius:8px;
+  font-size:13px;font-weight:600;text-decoration:none;color:var(--ink);
+}
+.news-link:hover{background:var(--surface-sunken);border-color:var(--border-strong);}
+.news-link svg{width:14px;height:14px;color:var(--ink-faint);}
+.news-reminder{font-size:12px;color:var(--ink-muted);line-height:1.5;background:var(--surface-sunken);border-radius:8px;padding:10px 12px;}
+
+/* ---------- Empty state ---------- */
+.empty-state{
+  display:flex;flex-direction:column;align-items:center;text-align:center;gap:14px;
+  padding:64px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);
+}
+.empty-state svg{width:40px;height:40px;color:var(--ink-faint);}
+.empty-state h2{font-size:16px;font-weight:700;}
+.empty-state p{font-size:13.5px;color:var(--ink-muted);max-width:360px;line-height:1.5;}
+
+/* ---------- Modal ---------- */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(22,26,34,0.45);
+  display:flex;align-items:center;justify-content:center;z-index:80;padding:20px;
+}
+.modal{
+  background:var(--surface);border-radius:var(--radius);box-shadow:var(--shadow-pop);
+  width:100%;max-width:440px;padding:24px 24px 20px;
+}
+.modal__head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.modal__head h2{font-size:16px;font-weight:700;}
+.modal__close{appearance:none;border:none;background:none;cursor:pointer;color:var(--ink-muted);padding:4px;border-radius:6px;}
+.modal__close:hover{background:var(--surface-sunken);color:var(--ink);}
+.modal__close svg{width:16px;height:16px;}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:16px;}
+.field label{font-size:12.5px;font-weight:700;color:var(--ink-muted);}
+.field select,.field input{
+  border:1px solid var(--border-strong);border-radius:8px;padding:9px 11px;font-size:13.5px;
+  font-family:inherit;background:var(--surface);color:var(--ink);
+}
+.field select:focus,.field input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.segmented{display:flex;border:1px solid var(--border-strong);border-radius:8px;overflow:hidden;}
+.segmented button{flex:1;padding:9px 0;background:var(--surface);border:none;font-size:13px;font-weight:600;cursor:pointer;color:var(--ink-muted);}
+.segmented button + button{border-left:1px solid var(--border-strong);}
+.segmented button.is-active[data-side="buy"]{background:var(--good-bg);color:var(--good);}
+.segmented button.is-active[data-side="sell"]{background:var(--warn-bg);color:var(--warn);}
+.field-hint{display:flex;gap:7px;align-items:flex-start;font-size:12px;color:var(--accent-ink);background:var(--accent-soft);border-radius:7px;padding:8px 10px;margin-bottom:16px;}
+.field-hint svg{width:13px;height:13px;flex:none;margin-top:2px;}
+.modal__actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px;}
+
+/* ---------- Preview dock ---------- */
+.preview-dock{
+  position:fixed;right:18px;bottom:18px;z-index:60;
+  width:252px;background:var(--surface);border:1px dashed var(--border-strong);
+  border-radius:12px;box-shadow:var(--shadow-pop);font-size:12px;
+}
+.preview-dock__head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 12px;border-bottom:1px dashed var(--border-strong);
+}
+.preview-dock__title{font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;letter-spacing:0.06em;color:var(--ink-muted);text-transform:uppercase;}
+.preview-dock__toggle{appearance:none;border:none;background:none;cursor:pointer;color:var(--ink-muted);padding:2px;}
+.preview-dock__toggle svg{width:14px;height:14px;}
+.preview-dock__body{padding:12px;display:flex;flex-direction:column;gap:12px;}
+.preview-dock.is-collapsed .preview-dock__body{display:none;}
+.pd-field{display:flex;flex-direction:column;gap:5px;}
+.pd-field label{font-weight:700;color:var(--ink-muted);font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;}
+.pd-field select{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:12px;font-family:inherit;background:var(--bg);}
+.pd-radiorow{display:flex;gap:6px;flex-wrap:wrap;}
+.pd-radiorow button{
+  border:1px solid var(--border);background:var(--bg);border-radius:6px;padding:4px 8px;font-size:11px;cursor:pointer;color:var(--ink-muted);
+}
+.pd-radiorow button.is-active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* ---------- Toast ---------- */
+.toast{
+  position:fixed;left:24px;bottom:24px;z-index:90;
+  background:var(--ink);color:#fff;font-size:13px;font-weight:500;
+  padding:11px 16px;border-radius:8px;box-shadow:var(--shadow-pop);
+  opacity:0;transform:translateY(6px);transition:opacity .18s ease,transform .18s ease;pointer-events:none;
+}
+.toast.is-visible{opacity:1;transform:translateY(0);}
+@media (prefers-reduced-motion:reduce){.toast{transition:none;}}
+
+/* ---------- Mobile-ish collapse (desktop-first product, but keep usable) ---------- */
+@media (max-width:900px){
+  .detail-head{grid-template-columns:1fr;}
+  .checklist-box{border-left:none;padding-left:0;border-top:1px solid var(--border);padding-top:16px;margin-top:6px;}
+  .detail-body{grid-template-columns:1fr;}
+  .summary-strip{grid-template-columns:1fr;}
+  .indicators{grid-template-columns:1fr;}
+  .preview-dock{left:12px;right:12px;width:auto;bottom:12px;}
+}
+</style>
+
+<header class="appbar">
+  <div class="appbar__brand">Stock Helper</div>
+  <nav class="appbar__nav" aria-label="Primary">
+    <button class="appbar__tab" data-nav="dashboard" aria-current="page">Dashboard</button>
+    <button class="appbar__tab" data-nav="portfolio">Portfolio</button>
+  </nav>
+  <div class="appbar__meta">
+    <div class="freshness" id="freshness">
+      <span class="freshness__dot" id="freshness-dot"></span>
+      <span id="freshness-text">Data as of Wednesday, 2:47 PM</span>
+    </div>
+  </div>
+</header>
+
+<div id="global-banner" class="global-banner" hidden>
+  <svg viewBox="0 0 20 20" fill="none"><path d="M10 6.5v4M10 13.5h.01M8.6 2.9 1.9 15a1.5 1.5 0 0 0 1.3 2.2h13.6a1.5 1.5 0 0 0 1.3-2.2L11.4 2.9a1.5 1.5 0 0 0-2.8 0Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  <span><strong>Live prices unavailable.</strong> Showing the last known data from <span id="global-banner-time">Tuesday, 4:15 PM</span>. We'll refresh automatically once the connection is back.</span>
+</div>
+
+<main>
+
+  <!-- ============ PAGE: DASHBOARD ============ -->
+  <section class="page is-active" id="page-dashboard">
+    <div class="page-head">
+      <h1>Dashboard</h1>
+      <div class="page-head__sub">20-stock watchlist &middot; stocks needing attention are sorted to the top</div>
+    </div>
+    <div id="dashboard-summary"></div>
+    <div class="table-card"><div class="table-scroll">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th style="width:26%">Stock</th>
+            <th class="num">Price</th>
+            <th class="num">1-day change</th>
+            <th>Suggestion</th>
+            <th class="num">My P/L</th>
+          </tr>
+        </thead>
+        <tbody id="dashboard-rows"></tbody>
+      </table>
+    </div></div>
+  </section>
+
+  <!-- ============ PAGE: STOCK DETAIL ============ -->
+  <section class="page" id="page-detail">
+    <button class="back-link" id="detail-back">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M10 12.5 5.5 8 10 3.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Back to dashboard
+    </button>
+    <div id="detail-warnbanner"></div>
+    <div class="detail-head" id="detail-head"></div>
+    <div id="detail-body-wrap"></div>
+  </section>
+
+  <!-- ============ PAGE: PORTFOLIO ============ -->
+  <section class="page" id="page-portfolio">
+    <div class="page-head">
+      <h1>Portfolio</h1>
+      <div class="page-head__sub" id="portfolio-sub">Your recorded positions</div>
+    </div>
+    <div id="portfolio-content"></div>
+  </section>
+
+</main>
+
+<!-- ============ MODAL: ADD / EDIT TRADE ============ -->
+<div class="modal-overlay" id="modal-overlay" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal__head">
+      <h2 id="modal-title">Add trade</h2>
+      <button class="modal__close" id="modal-close" aria-label="Close">
+        <svg viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="field">
+      <label for="trade-stock">Stock</label>
+      <select id="trade-stock"></select>
+    </div>
+    <div class="field">
+      <label>Trade type</label>
+      <div class="segmented" id="trade-side">
+        <button type="button" data-side="buy" class="is-active">Buy</button>
+        <button type="button" data-side="sell">Sell</button>
+      </div>
+    </div>
+    <div class="field-row">
+      <div class="field">
+        <label for="trade-shares">Number of shares</label>
+        <input type="number" id="trade-shares" class="num" min="0" step="1" value="10">
+      </div>
+      <div class="field">
+        <label for="trade-price">Price per share</label>
+        <input type="number" id="trade-price" class="num" min="0" step="0.01" value="187.42">
+      </div>
+    </div>
+    <div class="field">
+      <label for="trade-date">Date</label>
+      <input type="date" id="trade-date">
+    </div>
+    <div class="field-hint" id="trade-hint" hidden>
+      <svg viewBox="0 0 16 16" fill="none"><path d="M8 5.2v3.4M8 11h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/></svg>
+      <span>This will update your average purchase price for this stock.</span>
+    </div>
+    <div class="modal__actions">
+      <button class="btn" id="trade-cancel">Cancel</button>
+      <button class="btn btn-primary" id="trade-save">Save trade</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ PREVIEW / STATE CONTROLS (not part of the product) ============ -->
+<div class="preview-dock" id="preview-dock">
+  <div class="preview-dock__head">
+    <span class="preview-dock__title">Design preview &middot; states</span>
+    <button class="preview-dock__toggle" id="preview-toggle" aria-label="Collapse">
+      <svg viewBox="0 0 16 16" fill="none"><path d="M4 10l4-4 4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+  <div class="preview-dock__body">
+    <div class="pd-field">
+      <label>Data connection</label>
+      <div class="pd-radiorow" id="pd-datastate">
+        <button data-state="live" class="is-active">Live</button>
+        <button data-state="refreshing">Refreshing</button>
+        <button data-state="stale">Source failed</button>
+      </div>
+    </div>
+    <div class="pd-field">
+      <label>Open stock detail for</label>
+      <select id="pd-stock"></select>
+    </div>
+    <div class="pd-field">
+      <label>Portfolio page</label>
+      <div class="pd-radiorow" id="pd-portfolio">
+        <button data-state="has-trades" class="is-active">Has trades</button>
+        <button data-state="empty">Empty</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*__APP_JS__*/
+</script>
