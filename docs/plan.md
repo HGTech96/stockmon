@@ -50,3 +50,9 @@ Do not start a phase before the previous one is done and committed.
 - [ ] Loading and error states on all pages
 - [ ] Settings page for profit targets
 - [ ] End-to-end pass: fresh DB → seed → refresh → record trades → verify all pages
+
+## Phase 7 — Trade history
+- [ ] Contract: GET /api/trades (see api-contract.md v1.2)
+- [ ] Core: realized P/L per sell trade (pure function + tests)
+- [ ] Backend: repository query, route, schema
+- [ ] UI: History page + nav tab, table per design system

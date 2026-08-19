@@ -291,6 +291,8 @@ Response `200`:
 - Effective target for a position = per-position override if set, else the default.
 - (v1.1 candidate: expose the checklist thresholds — RSI cutoff, %-from-low, sharp-move limits — here too, so they're tunable without code changes.)
 
+
+
 ---
 
 ## Out of contract (v1)
@@ -299,6 +301,28 @@ Response `200`:
 - Authentication — single local user, none.
 - Websockets / push — pull-only; the UI refetches every N minutes via TanStack Query.
 
+## 7. GET /api/trades
+
+All recorded trades, newest first. No pagination.
+
+```json
+{
+  "meta": { "dataAsOf": "2026-08-19T14:45:00-04:00", "isStale": false, "staleMessage": null },
+  "trades": [
+    { "id": 18, "ticker": "AAPL", "companyName": "Apple Inc.",
+      "action": "sell", "shares": 5, "pricePerShare": 195.00,
+      "totalUsd": 975.00, "realizedPnlUsd": 47.50, "date": "2026-08-19" },
+    { "id": 17, "ticker": "AAPL", "companyName": "Apple Inc.",
+      "action": "buy", "shares": 5, "pricePerShare": 189.10,
+      "totalUsd": 945.50, "realizedPnlUsd": null, "date": "2026-08-19" }
+  ]
+}
+```
+
+- `totalUsd` = shares × pricePerShare, computed backend-side.
+- `realizedPnlUsd`: sells only — (sale price − average purchase price at the
+  time of that sale) × shares sold, computed from the trade log in core.
+  `null` on buys.
 ---
 
 ## Changelog
