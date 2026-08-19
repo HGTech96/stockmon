@@ -3,13 +3,21 @@ import sys
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from stockmon.api.routes import portfolio, refresh, settings, stocks, trades
+from stockmon.config import settings as app_settings
 from stockmon.services.stock_service import StockNotFoundError
 from stockmon.services.trade_service import TradeValidationError
 
 app = FastAPI(title="stockmon")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[app_settings.ui_origin],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 app.include_router(refresh.router)
 app.include_router(stocks.router)
 app.include_router(portfolio.router)

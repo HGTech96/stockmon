@@ -35,9 +35,9 @@ Do not start a phase before the previous one is done and committed.
 - [x] Endpoint tests against contract examples
 
 ## Phase 4 — UI skeleton
-- [ ] ui/ scaffold: Vite + React + Tailwind + shadcn/ui + TanStack Query + router
-- [ ] API client layer typed to the contract shapes
-- [ ] Layout shell: nav, data-freshness bar (timestamp, stale warning)
+- [x] ui/ scaffold: Vite + React + Tailwind + shadcn/ui + TanStack Query + router
+- [x] API client layer typed to the contract shapes
+- [x] Layout shell: nav, data-freshness bar (timestamp, stale warning)
 
 ## Phase 5 — Pages
 - [ ] Dashboard page (table, badges, warning icons, summary strip)

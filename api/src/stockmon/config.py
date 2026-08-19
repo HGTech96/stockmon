@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
     database_url: str
+    ui_origin: str = "http://localhost:5173"
 
 
 settings = Settings()

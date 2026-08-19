@@ -1,0 +1,153 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@font-face {
+  font-family: 'Public Sans';
+  src: url('/fonts/public-sans-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Public Sans';
+  src: url('/fonts/public-sans-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Public Sans';
+  src: url('/fonts/public-sans-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Public Sans';
+  src: url('/fonts/public-sans-700.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-400.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-500.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  src: url('/fonts/jetbrains-mono-600.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+/*
+  Tokens extracted 1:1 from design/reference/stock-helper-design/dashboard-src.html
+  (:root custom properties). This is the single source of truth for color/radius/
+  shadow/font values in the app -- components use the Tailwind utilities generated
+  from this @theme block, never a hardcoded hex. The product is light-only (the
+  reference sets color-scheme:light), so there is no dark variant.
+
+  The --primary/--background/--muted/etc. aliases below are the semantic names
+  shadcn/ui's generated primitives (Button, Dialog, ...) read internally -- they
+  point at the same design-token values rather than shadcn's default palette, so
+  any component pulled in later already matches the design without edits.
+*/
+@theme {
+  --color-bg: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-sunken: #FAF7F2;
+  --color-border: #E8E2D4;
+  --color-border-strong: #CFC4AA;
+  --color-ink: #252118;
+  --color-ink-muted: #706751;
+  --color-ink-faint: #A39985;
+  --color-accent: #7E6225;
+  --color-accent-ink: #594418;
+  --color-accent-soft: #F6F0E5;
+  --color-good: #0F7B4E;
+  --color-good-bg: #E6F4ED;
+  --color-good-border: #BFE3D0;
+  --color-warn: #B45309;
+  --color-warn-bg: #FCEEDD;
+  --color-warn-border: #F3CFA0;
+  --color-neutral: #6B7280;
+  --color-neutral-bg: #EEF0F2;
+  --color-neutral-border: #D8DCE1;
+  --color-bad: #B91C1C;
+
+  --radius-DEFAULT: 10px;
+  --radius-pill: 999px;
+
+  --shadow-card: 0 2px 4px rgba(37, 33, 24, 0.05), 0 14px 32px -12px rgba(37, 33, 24, 0.24);
+  --shadow-pop: 0 16px 40px rgba(37, 33, 24, 0.16), 0 2px 10px rgba(37, 33, 24, 0.08);
+
+  --font-sans: 'Public Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+
+  /* shadcn/ui primitive aliases -- values only, no new colors */
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-ink);
+  --color-card: var(--color-surface);
+  --color-card-foreground: var(--color-ink);
+  --color-popover: var(--color-surface);
+  --color-popover-foreground: var(--color-ink);
+  --color-primary: var(--color-accent);
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: var(--color-surface-sunken);
+  --color-secondary-foreground: var(--color-ink);
+  --color-muted: var(--color-surface-sunken);
+  --color-muted-foreground: var(--color-ink-muted);
+  --color-accent-foreground: #FFFFFF;
+  --color-destructive: var(--color-bad);
+  --color-destructive-foreground: #FFFFFF;
+  --color-input: var(--color-border-strong);
+  --color-ring: var(--color-accent);
+}
+
+:root {
+  --radius: 0.625rem; /* 10px -- matches --radius-DEFAULT, base for shadcn's radius-sm/md/lg calc scale */
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+/* Tabular, monospace figures for prices/percentages -- apply via className="num" */
+.num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
