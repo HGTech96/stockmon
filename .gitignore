@@ -1,0 +1,53 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+
+# PyCharm & JetBrains IDE settings
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Coverage & testing artifacts
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Database / local storage (e.g., SQLite, local uploads)
+*.sqlite3
+*.db
+*.log
+uploads/
+media/
+
+# Logs and databases
+*.log
+logs/
+
+# Operating System files
+.DS_Store
+Thumbs.db
