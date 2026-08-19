@@ -14,6 +14,15 @@ export function fmtMoneySigned(n) {
   return (n >= 0 ? "+" : "-") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/**
+ * @param {number} remainingDollars
+ * @param {boolean} reached
+ * @returns {string} "Goal reached" when reached, else "$X to go"
+ */
+export function fmtToGo(remainingDollars, reached) {
+  return reached ? "Goal reached" : `${fmtMoney(remainingDollars)} to go`;
+}
+
 /** @param {number} n @returns {string} "+6.30%" / "-1.20%" / "0.00%" for |n| < 0.005 */
 export function fmtPct(n) {
   if (Math.abs(n) < 0.005) return "0.00%";

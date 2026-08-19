@@ -2,12 +2,9 @@ import { useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getStocks } from "../../api/stocks";
+import { SummaryStrip } from "../../components/summary/SummaryStrip";
+import { StockTable } from "./StockTable";
 
-/**
- * Placeholder for Phase 5. Proves the query/CORS/freshness wiring works
- * end-to-end: shows a loading state, the error message on failure, and a
- * raw JSON dump of the response on success.
- */
 export function DashboardPage() {
   const { setMeta } = useOutletContext();
   const { data, error, isPending } = useQuery({
@@ -19,16 +16,24 @@ export function DashboardPage() {
     setMeta(data?.meta);
   }, [data, setMeta]);
 
+  if (isPending) {
+    return <p className="py-20 text-center text-ink-muted">Loading…</p>;
+  }
+
+  if (error) {
+    return <p className="py-20 text-center text-bad">{error.message}</p>;
+  }
+
   return (
     <div>
-      <h1 className="mb-4 text-xl font-bold tracking-tight">Dashboard</h1>
-      {isPending && <p className="text-ink-muted">Loading...</p>}
-      {error && <p className="text-bad">{error.message}</p>}
-      {data && (
-        <pre className="num overflow-x-auto rounded border border-border bg-surface-sunken p-4 text-xs">
-          {JSON.stringify(data, null, 2)}
-        </pre>
-      )}
+      <div className="mb-5 flex flex-wrap items-baseline justify-between gap-4">
+        <h1 className="text-xl font-bold tracking-tight">Dashboard</h1>
+        <div className="text-[13px] text-ink-muted">
+          {data.stocks.length}-stock watchlist &middot; stocks needing attention are sorted to the top
+        </div>
+      </div>
+      {data.summary && <SummaryStrip summary={data.summary} />}
+      <StockTable stocks={data.stocks} />
     </div>
   );
 }

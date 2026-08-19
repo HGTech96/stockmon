@@ -1,4 +1,4 @@
-import { fmtShares, fmtPrice, fmtMoney, fmtMoneySigned, fmtPct } from "../../lib/format";
+import { fmtShares, fmtPrice, fmtMoney, fmtMoneySigned, fmtPct, fmtToGo } from "../../lib/format";
 
 function Item({ label, value, className = "" }) {
   return (
@@ -40,7 +40,7 @@ export function PositionCard({ position }) {
         <div className="h-2 overflow-hidden rounded-pill bg-surface-sunken">
           <div className="h-full rounded-pill bg-good" style={{ width: `${(progressDollars / targetDollars) * 100}%` }} />
         </div>
-        <div className="mt-1.5 text-[12px] text-ink-muted">{reached ? "Goal reached" : `${fmtMoney(remainingDollars)} to go`}</div>
+        <div className="mt-1.5 text-[12px] text-ink-muted">{fmtToGo(remainingDollars, reached)}</div>
       </div>
     </div>
   );

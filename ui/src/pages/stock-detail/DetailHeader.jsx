@@ -1,20 +1,7 @@
-import { TrendingUp, TrendingDown } from "lucide-react";
 import { SuggestionBadge } from "../../components/badge/SuggestionBadge";
+import { Trend } from "../../components/trend/Trend";
 import { FreshnessBar } from "../../components/layout/FreshnessBar";
-import { fmtOrDash, fmtPrice, fmtPct } from "../../lib/format";
-
-function Trend({ change1dPct }) {
-  if (change1dPct == null) return <span className="text-ink-muted">{fmtOrDash(null, fmtPct)}</span>;
-  const dir = change1dPct > 0.05 ? "up" : change1dPct < -0.05 ? "down" : "flat";
-  const Icon = dir === "up" ? TrendingUp : dir === "down" ? TrendingDown : null;
-  const colorClass = dir === "up" ? "text-good" : dir === "down" ? "text-bad" : "text-ink-muted";
-  return (
-    <span className={`inline-flex items-center gap-1 font-semibold ${colorClass}`}>
-      {Icon && <Icon className="h-3 w-3" strokeWidth={2.5} />}
-      {fmtPct(change1dPct)}
-    </span>
-  );
-}
+import { fmtOrDash, fmtPrice } from "../../lib/format";
 
 /**
  * @param {{

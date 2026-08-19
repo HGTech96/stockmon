@@ -40,10 +40,10 @@ Do not start a phase before the previous one is done and committed.
 - [x] Layout shell: nav, data-freshness bar (timestamp, stale warning)
 
 ## Phase 5 — Pages
-- [ ] Dashboard page (table, badges, warning icons, summary strip)
+- [x] Dashboard page (table, badges, warning icons, summary strip)
 - [x] Stock detail page (badge + checklist, charts with overlays, indicators table, position card, news links, warning banner, insufficient-data state)
-- [ ] Portfolio page (positions, totals, target progress, empty state)
-- [ ] Add/Edit trade modal (validation, shows server-returned updated position)
+- [x] Portfolio page (positions, totals, target progress, empty state)
+- [x] Add/Edit trade modal (validation, shows server-returned updated position)
 
 ## Phase 6 — Polish
 - [ ] Auto-refetch interval via TanStack Query
