@@ -201,6 +201,25 @@
  */
 
 /**
+ * @typedef {Object} TradeHistoryEntry
+ * @property {number} id
+ * @property {string} ticker
+ * @property {string} companyName
+ * @property {"buy"|"sell"} action
+ * @property {number} shares
+ * @property {number} pricePerShare
+ * @property {number} totalUsd
+ * @property {number|null} realizedPnlUsd
+ * @property {string} date - YYYY-MM-DD
+ */
+
+/**
+ * @typedef {Object} TradesResponse
+ * @property {Meta} meta
+ * @property {TradeHistoryEntry[]} trades
+ */
+
+/**
  * @typedef {Object} RefreshFailure
  * @property {string} ticker
  * @property {string} error

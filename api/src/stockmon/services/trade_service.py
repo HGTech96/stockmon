@@ -5,7 +5,7 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
-from stockmon.core.position import Position, TradeEvent, derive_position
+from stockmon.core.position import Position, TradeEvent, compute_realized_pnl, derive_position
 from stockmon.db.models import Stock
 from stockmon.db.models import Trade as TradeRow
 
@@ -18,6 +18,19 @@ class TradeValidationError(Exception):
 class TradeResult:
     trade: TradeRow
     updated_position: Position | None
+
+
+@dataclass(frozen=True)
+class TradeHistoryEntry:
+    id: int
+    ticker: str
+    company_name: str
+    action: Literal["buy", "sell"]
+    shares: Decimal
+    price_per_share: Decimal
+    total_usd: Decimal
+    realized_pnl_usd: Decimal | None
+    date: date
 
 
 def _load_trade_events(db: Session, stock_id: int) -> list[TradeEvent]:
@@ -86,3 +99,41 @@ def record_trade(
     db.refresh(trade)
 
     return TradeResult(trade=trade, updated_position=updated_position)
+
+
+def list_trade_history(db: Session) -> list[TradeHistoryEntry]:
+    """All trades across the watchlist, newest first. Realized P/L is
+    computed per-ticker (compute_realized_pnl needs each stock's own
+    chronological trade sequence to replay average cost correctly)."""
+    stocks = {stock.id: stock for stock in db.query(Stock).all()}
+    rows = db.query(TradeRow).order_by(TradeRow.trade_date, TradeRow.id).all()
+
+    rows_by_stock: dict[int, list[TradeRow]] = {}
+    for row in rows:
+        rows_by_stock.setdefault(row.stock_id, []).append(row)
+
+    realized_pnl_by_row_id: dict[int, Decimal | None] = {}
+    for stock_id, stock_rows in rows_by_stock.items():
+        events = [
+            TradeEvent(action=row.action, shares=row.shares, price_per_share=row.price_per_share, date=row.trade_date)
+            for row in stock_rows
+        ]
+        for row, realized in zip(stock_rows, compute_realized_pnl(events)):
+            realized_pnl_by_row_id[row.id] = realized
+
+    entries = [
+        TradeHistoryEntry(
+            id=row.id,
+            ticker=stocks[row.stock_id].ticker,
+            company_name=stocks[row.stock_id].company_name,
+            action=row.action,
+            shares=row.shares,
+            price_per_share=row.price_per_share,
+            total_usd=row.shares * row.price_per_share,
+            realized_pnl_usd=realized_pnl_by_row_id[row.id],
+            date=row.trade_date,
+        )
+        for row in rows
+    ]
+    entries.sort(key=lambda e: (e.date, e.id), reverse=True)
+    return entries

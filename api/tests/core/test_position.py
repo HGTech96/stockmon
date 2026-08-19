@@ -8,6 +8,7 @@ from stockmon.core.position import (
     PositionError,
     ProfitTargetProgress,
     TradeEvent,
+    compute_realized_pnl,
     derive_position,
     evaluate_profit_target,
     value_position,
@@ -142,3 +143,48 @@ def test_profit_target_progress_floored_at_zero_for_losing_position() -> None:
     assert progress.reached is False
     assert progress.progress_dollars == Decimal(0)
     assert progress.remaining_dollars == Decimal("498.90")
+
+
+def test_realized_pnl_single_sell_profit() -> None:
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("10", "150.00", date(2026, 1, 10)),
+    ]
+    assert compute_realized_pnl(trades) == [None, Decimal(500)]
+
+
+def test_realized_pnl_single_sell_loss() -> None:
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("10", "80.00", date(2026, 1, 10)),
+    ]
+    assert compute_realized_pnl(trades) == [None, Decimal(-200)]
+
+
+def test_realized_pnl_multiple_partial_sells_at_different_avg_costs() -> None:
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("4", "150.00", date(2026, 1, 10)),
+        _buy("10", "200.00", date(2026, 2, 1)),
+        _sell("5", "180.00", date(2026, 2, 10)),
+    ]
+    assert compute_realized_pnl(trades) == [None, Decimal(200), None, Decimal("87.5")]
+
+
+def test_realized_pnl_position_closed_then_reopened_then_sold() -> None:
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("10", "150.00", date(2026, 1, 10)),
+        _buy("5", "200.00", date(2026, 2, 1)),
+        _sell("5", "250.00", date(2026, 2, 10)),
+    ]
+    assert compute_realized_pnl(trades) == [None, Decimal(500), None, Decimal(250)]
+
+
+def test_realized_pnl_oversell_raises_position_error() -> None:
+    trades = [
+        _buy("5", "100.00", date(2026, 1, 1)),
+        _sell("10", "150.00", date(2026, 1, 10)),
+    ]
+    with pytest.raises(PositionError):
+        compute_realized_pnl(trades)

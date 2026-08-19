@@ -102,3 +102,52 @@ def test_missing_field_returns_422_with_error_shape(client) -> None:
     r = client.post("/api/trades", json={"ticker": "AAPL", "action": "buy", "shares": 1})
     assert r.status_code == 422
     assert set(r.json().keys()) == {"error"}
+
+
+TRADE_HISTORY_RESPONSE_KEYS = {"meta", "trades"}
+TRADE_HISTORY_ITEM_KEYS = {
+    "id",
+    "ticker",
+    "companyName",
+    "action",
+    "shares",
+    "pricePerShare",
+    "totalUsd",
+    "realizedPnlUsd",
+    "date",
+}
+
+
+def test_get_trades_empty(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+
+    r = client.get("/api/trades")
+
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body.keys()) == TRADE_HISTORY_RESPONSE_KEYS
+    assert body["trades"] == []
+
+
+def test_get_trades_returns_history_newest_first(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    client.post(
+        "/api/trades",
+        json={"ticker": "AAPL", "action": "buy", "shares": 10, "pricePerShare": 100, "date": "2026-01-01"},
+    )
+    client.post(
+        "/api/trades",
+        json={"ticker": "AAPL", "action": "sell", "shares": 4, "pricePerShare": 150, "date": "2026-01-10"},
+    )
+
+    r = client.get("/api/trades")
+
+    assert r.status_code == 200
+    trades = r.json()["trades"]
+    assert len(trades) == 2
+    assert set(trades[0].keys()) == TRADE_HISTORY_ITEM_KEYS
+    assert trades[0]["action"] == "sell"
+    assert trades[0]["realizedPnlUsd"] == 200.0
+    assert trades[0]["totalUsd"] == 600.0
+    assert trades[1]["action"] == "buy"
+    assert trades[1]["realizedPnlUsd"] is None

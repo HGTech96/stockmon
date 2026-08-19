@@ -10,3 +10,8 @@ export function postTrade(payload) {
     body: JSON.stringify(payload),
   });
 }
+
+/** @returns {Promise<import('./types').TradesResponse>} */
+export function getTrades() {
+  return request("/trades");
+}

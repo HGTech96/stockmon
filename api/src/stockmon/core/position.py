@@ -67,6 +67,36 @@ def derive_position(trades: list[TradeEvent]) -> Position | None:
     return Position(shares_held=shares, avg_purchase_price=avg_price, amount_invested=invested)
 
 
+def compute_realized_pnl(trades: list[TradeEvent]) -> list[Decimal | None]:
+    """Replays trades in the given order (caller sorts chronologically),
+    same weighted-average-cost rule as derive_position. Returns a list
+    parallel to `trades`: for each sell, (sale price - avg cost at that
+    point in the replay) * shares sold; None for buys."""
+    shares = Decimal(0)
+    avg_price = Decimal(0)
+    invested = Decimal(0)
+    results: list[Decimal | None] = []
+
+    for trade in trades:
+        if trade.action == "buy":
+            invested += trade.shares * trade.price_per_share
+            shares += trade.shares
+            avg_price = invested / shares
+            results.append(None)
+        else:
+            if trade.shares > shares:
+                raise PositionError(
+                    f"cannot sell {trade.shares} shares on {trade.date}, only {shares} held"
+                )
+            realized = (trade.price_per_share - avg_price) * trade.shares
+            proportion = trade.shares / shares
+            invested -= invested * proportion
+            shares -= trade.shares
+            results.append(realized)
+
+    return results
+
+
 def value_position(position: Position, current_price: Decimal) -> PositionValue:
     current_value = position.shares_held * current_price
     profit_loss = current_value - position.amount_invested

@@ -3,7 +3,8 @@ from decimal import Decimal
 from typing import Literal
 
 from stockmon.api.schemas.base import CamelModel, Money
-from stockmon.services.trade_service import TradeResult
+from stockmon.api.schemas.common import MetaSchema
+from stockmon.services.trade_service import TradeHistoryEntry, TradeResult
 
 
 class TradeRequest(CamelModel):
@@ -56,6 +57,41 @@ class TradeResponse(CamelModel):
             ),
             updated_position=updated_position,
         )
+
+
+class TradeHistoryEntrySchema(CamelModel):
+    id: int
+    ticker: str
+    company_name: str
+    action: Literal["buy", "sell"]
+    shares: Money
+    price_per_share: Money
+    total_usd: Money
+    realized_pnl_usd: Money | None
+    date: date
+
+    @classmethod
+    def from_core(cls, entry: TradeHistoryEntry) -> "TradeHistoryEntrySchema":
+        return cls(
+            id=entry.id,
+            ticker=entry.ticker,
+            company_name=entry.company_name,
+            action=entry.action,
+            shares=entry.shares,
+            price_per_share=entry.price_per_share,
+            total_usd=entry.total_usd,
+            realized_pnl_usd=entry.realized_pnl_usd,
+            date=entry.date,
+        )
+
+
+class TradeHistoryResponse(CamelModel):
+    meta: MetaSchema
+    trades: list[TradeHistoryEntrySchema]
+
+    @classmethod
+    def from_core(cls, meta: MetaSchema, entries: list[TradeHistoryEntry]) -> "TradeHistoryResponse":
+        return cls(meta=meta, trades=[TradeHistoryEntrySchema.from_core(e) for e in entries])
 
 
 class ErrorResponse(CamelModel):

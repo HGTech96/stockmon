@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 const TABS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/portfolio", label: "Portfolio", end: false },
+  { to: "/history", label: "History", end: false },
 ];
 
 function tabClassName({ isActive }) {
