@@ -1,0 +1,76 @@
+/**
+ * Every user-facing formatter in the app lives here. Components never
+ * format inline (CLAUDE.md) — the API sends raw numbers and ISO
+ * timestamps/dates, this file turns them into display strings.
+ */
+
+/** @param {number} n @returns {string} "$1,234.56" (unsigned, comma grouped) */
+export function fmtMoney(n) {
+  return "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** @param {number} n @returns {string} "+$111.20" / "-$45.00" */
+export function fmtMoneySigned(n) {
+  return (n >= 0 ? "+" : "-") + "$" + Math.abs(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/** @param {number} n @returns {string} "+6.30%" / "-1.20%" / "0.00%" for |n| < 0.005 */
+export function fmtPct(n) {
+  if (Math.abs(n) < 0.005) return "0.00%";
+  return (n > 0 ? "+" : "-") + Math.abs(n).toFixed(2) + "%";
+}
+
+/** @param {number} n @returns {string} "$187.42" (no comma grouping, matches design) */
+export function fmtPrice(n) {
+  return "$" + n.toFixed(2);
+}
+
+/** @param {number} n - raw share count @returns {string} "55.9M" */
+export function fmtVolume(n) {
+  return (n / 1_000_000).toFixed(1) + "M";
+}
+
+/** @param {number} n @returns {string} "1,234" (comma grouped integer) */
+export function fmtShares(n) {
+  return n.toLocaleString("en-US");
+}
+
+/** @param {number} n @returns {string} nearest whole number, e.g. "55" */
+export function fmtRounded(n) {
+  return String(Math.round(n));
+}
+
+/** @param {string} isoDate - "YYYY-MM-DD" @returns {string} "Jul 21" */
+export function fmtDateShort(isoDate) {
+  return parseIsoDate(isoDate).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+/** @param {string} isoDate - "YYYY-MM-DD" @returns {string} "Wed, Jul 21" */
+export function fmtDateLong(isoDate) {
+  return parseIsoDate(isoDate).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+}
+
+/** @param {string} isoDatetime - ISO 8601 with timezone @returns {string} "Tuesday, 2:45 PM" */
+export function fmtTimestamp(isoDatetime) {
+  const d = new Date(isoDatetime);
+  const weekday = d.toLocaleDateString("en-US", { weekday: "long" });
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  return `${weekday}, ${time}`;
+}
+
+/**
+ * @param {*} value
+ * @param {(value: *) => string} formatter
+ * @returns {string} "–" when value is null/undefined, else formatter(value).
+ * The one place the null-numeric-to-dash convention lives, so every
+ * nullable contract field renders the same character the same way.
+ */
+export function fmtOrDash(value, formatter) {
+  return value == null ? "–" : formatter(value);
+}
+
+/** @param {string} isoDate - "YYYY-MM-DD", parsed as local (not UTC midnight) so chart labels don't shift a day off */
+function parseIsoDate(isoDate) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}

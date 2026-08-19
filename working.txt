@@ -1,0 +1,11 @@
+Read CLAUDE.md and docs/plan.md. Phase 4 is next: UI skeleton.
+Write the plan to docs/planning/phase-4-ui-skeleton.md per the planning
+workflow, then stop for my review.
+
+Plan must cover: ui/ scaffold with Vite + React + Tailwind + shadcn/ui +
+TanStack Query + react-router; a typed API client layer matching
+docs/api-contract.md v1.1 shapes exactly; the layout shell (top nav with
+Dashboard/Portfolio tabs, data-freshness bar showing the meta timestamp
+and stale warning); TanStack Query setup with a periodic refetch interval.
+Also add CORS middleware to the FastAPI app so the Vite dev server origin
+can call the API. No page content yet — pages come in Phase 5.

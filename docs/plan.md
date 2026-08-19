@@ -41,7 +41,7 @@ Do not start a phase before the previous one is done and committed.
 
 ## Phase 5 — Pages
 - [ ] Dashboard page (table, badges, warning icons, summary strip)
-- [ ] Stock detail page (badge + checklist, charts with overlays, indicators table, position card, news links, warning banner, insufficient-data state)
+- [x] Stock detail page (badge + checklist, charts with overlays, indicators table, position card, news links, warning banner, insufficient-data state)
 - [ ] Portfolio page (positions, totals, target progress, empty state)
 - [ ] Add/Edit trade modal (validation, shows server-returned updated position)
 
