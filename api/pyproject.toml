@@ -5,6 +5,9 @@ description = "Personal stock buy/sell decision helper"
 authors = []
 packages = [{ include = "stockmon", from = "src" }]
 
+[tool.poetry.scripts]
+stockmon = "stockmon.main:main"
+
 [tool.poetry.dependencies]
 python = "^3.12"
 fastapi = "^0.115"
