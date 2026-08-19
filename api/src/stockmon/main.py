@@ -1,7 +1,10 @@
 import uvicorn
 from fastapi import FastAPI
 
+from stockmon.api.routes import refresh
+
 app = FastAPI(title="stockmon")
+app.include_router(refresh.router)
 
 
 @app.get("/api/health")

@@ -11,11 +11,11 @@ Do not start a phase before the previous one is done and committed.
 - [x] Health endpoint, app runs locally
 
 ## Phase 1 — Data layer
-- [ ] MarketDataProvider ABC in core (interface: fetch daily history, fetch current quote)
-- [ ] YFinanceProvider implementation
-- [ ] Refresh service: download ~60 days per ticker, upsert into daily_prices
-- [ ] POST /api/refresh per contract (partial-failure handling, stale tracking)
-- [ ] Manual test: refresh real watchlist, verify rows in DB
+- [x] MarketDataProvider ABC in core (interface: fetch daily history, fetch current quote)
+- [x] YFinanceProvider implementation
+- [x] Refresh service: download ~60 days per ticker, upsert into daily_prices
+- [x] POST /api/refresh per contract (partial-failure handling, stale tracking)
+- [x] Manual test: refresh real watchlist, verify rows in DB
 
 ## Phase 2 — Core logic (pure functions + tests)
 - [ ] Indicator calculations: changes, 30d avg/high/low, distances, volume vs avg, 14-period Wilder RSI

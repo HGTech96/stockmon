@@ -4,6 +4,16 @@ Personal stock buy/sell decision helper. Single local user. The app suggests
 (POSSIBLE BUY / WAIT / POSSIBLE SELL) with full visible reasoning; the human
 always decides. No automated trading, no AI features, no black-box scoring.
 
+## Planning workflow
+- Before implementing any phase, write the plan to docs/planning/phase-<N>-<name>.md
+  and STOP for my review. Implement only after I approve.
+- Plan format: clean markdown — short overview, then sections with headers:
+  files to create/change (as a tree), schemas/interfaces (code blocks),
+  step-by-step task list (checkboxes), open questions for me at the end.
+  No walls of prose; scannable over exhaustive.
+- After my review feedback, update the SAME file, don't create a new one.
+- After implementation, mark completed steps in the plan file.
+
 ## Key documents (read when relevant, don't assume)
 
 - docs/api-contract.md — the API contract. Endpoints and JSON shapes are FIXED.
