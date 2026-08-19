@@ -4,11 +4,11 @@ Work one phase at a time. Check off items as they're completed and verified.
 Do not start a phase before the previous one is done and committed.
 
 ## Phase 0 — Skeleton
-- [ ] api/ project scaffold: FastAPI app, folder layout (core/, services/, api/, db/), pyproject.toml, pytest setup
-- [ ] Postgres database + SQLAlchemy models: stocks, daily_prices, trades, settings
-- [ ] Alembic migration for initial schema
-- [ ] Seed script: insert my watchlist tickers
-- [ ] Health endpoint, app runs locally
+- [x] api/ project scaffold: FastAPI app, folder layout (core/, services/, api/, db/), pyproject.toml, pytest setup
+- [x] Postgres database + SQLAlchemy models: stocks, daily_prices, trades, settings
+- [x] Alembic migration for initial schema
+- [x] Seed script: insert my watchlist tickers
+- [x] Health endpoint, app runs locally
 
 ## Phase 1 — Data layer
 - [ ] MarketDataProvider ABC in core (interface: fetch daily history, fetch current quote)
