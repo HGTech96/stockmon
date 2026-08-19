@@ -27,12 +27,12 @@ Do not start a phase before the previous one is done and committed.
 - [x] Unit tests for ALL of the above, including edge cases (insufficient history, zero volume)
 
 ## Phase 3 — API endpoints
-- [ ] GET /api/stocks (dashboard, server-side sorting per contract)
-- [ ] GET /api/stocks/{ticker} (detail incl. insufficient-history state)
-- [ ] GET /api/portfolio (incl. empty state)
-- [ ] POST /api/trades (validation per contract, returns updated position)
-- [ ] GET/PUT settings endpoints (profit targets)
-- [ ] Endpoint tests against contract examples
+- [x] GET /api/stocks (dashboard, server-side sorting per contract)
+- [x] GET /api/stocks/{ticker} (detail incl. insufficient-history state)
+- [x] GET /api/portfolio (incl. empty state)
+- [x] POST /api/trades (validation per contract, returns updated position)
+- [x] GET/PUT settings endpoints (profit targets)
+- [x] Endpoint tests against contract examples
 
 ## Phase 4 — UI skeleton
 - [ ] ui/ scaffold: Vite + React + Tailwind + shadcn/ui + TanStack Query + router

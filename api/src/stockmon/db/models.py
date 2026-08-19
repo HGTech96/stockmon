@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -84,3 +85,16 @@ class ProfitTarget(Base):
     target_dollars: Mapped[Decimal] = mapped_column(Numeric(12, 2))
 
     stock: Mapped["Stock"] = relationship(back_populates="profit_target")
+
+
+class RefreshStatus(Base):
+    """Single-row table (id is always 1) tracking the outcome of the most
+    recent POST /api/refresh, used to compute the meta.isStale/dataAsOf
+    fields on every GET response."""
+
+    __tablename__ = "refresh_status"
+
+    id: Mapped[int] = mapped_column(primary_key=True, default=1)
+    last_attempted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_succeeded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    had_failures: Mapped[bool] = mapped_column(Boolean, default=False)

@@ -32,6 +32,24 @@ class Indicators:
     volume_vs_average_pct: Decimal
 
 
+@dataclass(frozen=True)
+class PriceSnapshot:
+    current_price: Decimal
+    change_1d_pct: Decimal
+
+
+def calculate_price_snapshot(bars: list[DailyBar]) -> PriceSnapshot | None:
+    """Cheap fallback for stocks with fewer than MIN_HISTORY_DAYS bars, where
+    calculate_indicators() can't run. bars must be sorted oldest-first.
+    Returns None if bars is empty (never refreshed). change_1d_pct is 0 when
+    only a single bar is available."""
+    if not bars:
+        return None
+    current_price = bars[-1].close
+    change_1d_pct = _pct_change(bars[-2].close, current_price) if len(bars) >= 2 else Decimal(0)
+    return PriceSnapshot(current_price=current_price, change_1d_pct=change_1d_pct)
+
+
 def calculate_indicators(bars: list[DailyBar]) -> Indicators:
     """bars must be sorted oldest-first. Raises InsufficientHistoryError if
     fewer than MIN_HISTORY_DAYS bars are supplied. 30-day metrics use the

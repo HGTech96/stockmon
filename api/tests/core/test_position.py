@@ -6,8 +6,10 @@ import pytest
 from stockmon.core.position import (
     Position,
     PositionError,
+    ProfitTargetProgress,
     TradeEvent,
     derive_position,
+    evaluate_profit_target,
     value_position,
 )
 
@@ -109,3 +111,34 @@ def test_value_position_loss() -> None:
     assert value.current_value == Decimal(900)
     assert value.profit_loss == Decimal(-100)
     assert value.profit_loss_pct == Decimal(-10)
+
+
+def test_profit_target_not_reached() -> None:
+    progress = evaluate_profit_target(profit_loss=Decimal("30.00"), target_dollars=Decimal("50.00"))
+    assert progress == ProfitTargetProgress(
+        target_dollars=Decimal("50.00"),
+        progress_dollars=Decimal("30.00"),
+        remaining_dollars=Decimal("20.00"),
+        reached=False,
+    )
+
+
+def test_profit_target_reached_exactly() -> None:
+    progress = evaluate_profit_target(profit_loss=Decimal("50.00"), target_dollars=Decimal("50.00"))
+    assert progress.reached is True
+    assert progress.progress_dollars == Decimal("50.00")
+    assert progress.remaining_dollars == Decimal(0)
+
+
+def test_profit_target_progress_capped_above_target() -> None:
+    progress = evaluate_profit_target(profit_loss=Decimal("150.00"), target_dollars=Decimal("50.00"))
+    assert progress.reached is True
+    assert progress.progress_dollars == Decimal("50.00")
+    assert progress.remaining_dollars == Decimal(0)
+
+
+def test_profit_target_progress_floored_at_zero_for_losing_position() -> None:
+    progress = evaluate_profit_target(profit_loss=Decimal("-198.90"), target_dollars=Decimal("300.00"))
+    assert progress.reached is False
+    assert progress.progress_dollars == Decimal(0)
+    assert progress.remaining_dollars == Decimal("498.90")

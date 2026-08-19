@@ -9,6 +9,7 @@ from stockmon.core.indicators import (
     InsufficientHistoryError,
     _wilder_rsi,
     calculate_indicators,
+    calculate_price_snapshot,
 )
 from stockmon.core.market_data import DailyBar
 
@@ -130,3 +131,23 @@ def test_calculate_indicators_rsi_uses_full_history_not_just_30_days() -> None:
     bars = _bars_from_closes(closes)
     indicators = calculate_indicators(bars)
     assert indicators.rsi == _wilder_rsi(closes)
+
+
+def test_price_snapshot_empty_bars_is_none() -> None:
+    assert calculate_price_snapshot([]) is None
+
+
+def test_price_snapshot_single_bar_has_zero_change() -> None:
+    bars = _bars_from_closes([Decimal(100)])
+    snapshot = calculate_price_snapshot(bars)
+    assert snapshot is not None
+    assert snapshot.current_price == Decimal(100)
+    assert snapshot.change_1d_pct == Decimal(0)
+
+
+def test_price_snapshot_uses_last_two_bars() -> None:
+    bars = _bars_from_closes([Decimal(100), Decimal(90), Decimal(99)])
+    snapshot = calculate_price_snapshot(bars)
+    assert snapshot is not None
+    assert snapshot.current_price == Decimal(99)
+    assert snapshot.change_1d_pct == (Decimal(99) - Decimal(90)) / Decimal(90) * 100

@@ -32,6 +32,14 @@ class PositionValue:
     profit_loss_pct: Decimal
 
 
+@dataclass(frozen=True)
+class ProfitTargetProgress:
+    target_dollars: Decimal
+    progress_dollars: Decimal
+    remaining_dollars: Decimal
+    reached: bool
+
+
 def derive_position(trades: list[TradeEvent]) -> Position | None:
     """Replays trades in the given order (caller sorts chronologically) using
     the weighted-average-cost rule. Returns None if net shares held is 0
@@ -70,4 +78,19 @@ def value_position(position: Position, current_price: Decimal) -> PositionValue:
         current_value=current_value,
         profit_loss=profit_loss,
         profit_loss_pct=profit_loss_pct,
+    )
+
+
+def evaluate_profit_target(profit_loss: Decimal, target_dollars: Decimal) -> ProfitTargetProgress:
+    """progress_dollars is profit_loss clamped to [0, target_dollars] (for a
+    0-100% progress bar); remaining_dollars is uncapped above target_dollars
+    so a losing position shows how far it is from the target, floored at 0."""
+    reached = profit_loss >= target_dollars
+    progress_dollars = min(max(profit_loss, Decimal(0)), target_dollars)
+    remaining_dollars = max(target_dollars - profit_loss, Decimal(0))
+    return ProfitTargetProgress(
+        target_dollars=target_dollars,
+        progress_dollars=progress_dollars,
+        remaining_dollars=remaining_dollars,
+        reached=reached,
     )
