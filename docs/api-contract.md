@@ -1,4 +1,4 @@
-# stockmon — API Contract v1
+# stockmon — API Contract v1.1
 
 Base URL: `http://localhost:8000/api`
 
@@ -32,6 +32,8 @@ When the last refresh failed and old data is served: `"isStale": true`, `"staleM
   "suggestion": {
     "label": "BUY",
     "type": "entry",
+    "metCount": 3,
+    "totalCount": 4,
     "checklist": [
       { "id": "price_below_30d_avg",  "text": "Price is below its 30-day average",        "passed": true },
       { "id": "near_30d_low",         "text": "Price is close to its 30-day low",         "passed": true },
@@ -44,6 +46,7 @@ When the last refresh failed and old data is served: `"isStale": true`, `"staleM
 ```
 
 - `type`: `"entry"` (BUY/WAIT evaluation) or `"exit"` (SELL evaluation). Determines which checklist is shown.
+- `metCount` / `totalCount`: how many checklist conditions passed out of how many — the UI renders "N OF M CONDITIONS MET" from these, never counts client-side.
 - `note`: optional extra sentence, e.g. `"Profit target reached — consider your plan."`
 
 **Direction rule (single source of truth, backend-only):**
@@ -129,7 +132,7 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
   "change1dPct": -1.2,
   "status": "ok",
   "daysOfHistoryAvailable": 43,
-  "suggestion": { "label": "BUY", "type": "entry", "checklist": [ /* see Suggestion object */ ], "note": null },
+  "suggestion": { "label": "BUY", "type": "entry", "metCount": 3, "totalCount": 4, "checklist": [ /* see Suggestion object */ ], "note": null },
   "warning": null,
   "chart": {
     "days": [
@@ -160,7 +163,7 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
     "currentValue": 1874.20,
     "profitLoss": 111.20,
     "profitLossPct": 6.3,
-    "profitTarget": { "targetDollars": 150.00, "progressDollars": 111.20, "reached": false }
+    "profitTarget": { "targetDollars": 150.00, "progressDollars": 111.20, "remainingDollars": 38.80, "reached": false }
   },
   "newsLinks": {
     "yahooFinance": "https://finance.yahoo.com/quote/AAPL",
@@ -172,7 +175,7 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
 
 - Price and volume history are **one array** (`chart.days`, 30 entries, oldest first) — they share the time axis; tooltips get date + close + volume from the same row.
 - `chart.userAvgPurchasePrice` is `null` when the stock isn't owned (no dashed line).
-- **Insufficient history:** `status: "insufficient_history"`, `suggestion: null`, `indicators: null`, `chart: null`, and `daysOfHistoryAvailable` tells the UI what to display. `newsLinks` still present.
+- **Insufficient history:** `status: "insufficient_history"`, `suggestion: null`, `indicators: null`, `chart: null`. Extra fields for the UI message: `daysOfHistoryAvailable` (e.g. 14), `daysOfHistoryRequired` (30), `tradingDaysUntilReady` (16). `newsLinks` still present.
 - `position` is `null` when not owned.
 - `investorRelations` may be `null` (stored per stock in the `stocks` table; optional).
 - 404 for a ticker not on the watchlist.
@@ -199,7 +202,7 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
       "currentValue": 3213.75,
       "profitLoss": 1011.25,
       "profitLossPct": 45.9,
-      "profitTarget": { "targetDollars": 150.00, "progressDollars": 150.00, "reached": true },
+      "profitTarget": { "targetDollars": 150.00, "progressDollars": 150.00, "remainingDollars": 0.00, "reached": true },
       "status": "ok",
       "suggestion": "SELL"
     }
@@ -211,6 +214,7 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
 - **Empty state:** `hasTrades: false`, `summary: null`, `positions: []`. `watchlist` is always present (feeds the empty-state text and the trade form dropdown).
 - Positions with `sharesHeld` reduced to 0 by sells are **closed** and not listed.
 - `progressDollars` is capped at `targetDollars` for display; `reached` is the flag to key off.
+- `remainingDollars` = `targetDollars - profitLoss`, floored at 0. NOT derivable from capped `progressDollars` for losing positions (target 300, P/L -198.90 → remaining 498.90) — the UI renders "$X to go" from this field.
 
 ## 4. POST /api/trades
 
@@ -294,3 +298,13 @@ Response `200`:
 - `GET /api/trades` (trade history list) — data exists in the `trades` table; endpoint deferred until a history page exists.
 - Authentication — single local user, none.
 - Websockets / push — pull-only; the UI refetches every N minutes via TanStack Query.
+
+---
+
+## Changelog
+
+### v1.1 (design alignment — after Phase 2 was implemented)
+- **A1** Suggestion object: added `metCount` and `totalCount`.
+- **A2** `profitTarget`: added `remainingDollars` (uncapped; see Portfolio notes).
+- **A3** Insufficient-history state: added `daysOfHistoryRequired` and `tradingDaysUntilReady` alongside `daysOfHistoryAvailable`.
+- No endpoint additions or removals. No changes to evaluation rules, checklist ids, thresholds, or precedence — the target-gated exit rule stands as specified in v1.
