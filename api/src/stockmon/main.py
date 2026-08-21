@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from stockmon.api.routes import portfolio, refresh, settings, stocks, trades
 from stockmon.config import settings as app_settings
 from stockmon.services.stock_service import StockNotFoundError
-from stockmon.services.trade_service import TradeValidationError
+from stockmon.services.trade_service import TradeNotFoundError, TradeValidationError
 
 app = FastAPI(title="stockmon")
 app.add_middleware(
@@ -43,6 +43,11 @@ def handle_trade_validation_error(request: Request, exc: TradeValidationError) -
 
 @app.exception_handler(StockNotFoundError)
 def handle_stock_not_found_error(request: Request, exc: StockNotFoundError) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"error": str(exc)})
+
+
+@app.exception_handler(TradeNotFoundError)
+def handle_trade_not_found_error(request: Request, exc: TradeNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"error": str(exc)})
 
 

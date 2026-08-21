@@ -42,6 +42,7 @@ export function TradeModal({ open, onClose, watchlist, stocksByTicker, ownedTick
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["stocks"] });
       queryClient.invalidateQueries({ queryKey: ["portfolio"] });
+      queryClient.invalidateQueries({ queryKey: ["trades"] });
       onClose();
     },
   });

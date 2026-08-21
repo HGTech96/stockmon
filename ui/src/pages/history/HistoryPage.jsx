@@ -1,12 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getTrades } from "../../api/trades";
 import { TradeHistoryTable } from "./TradeHistoryTable";
 import { EmptyState } from "./EmptyState";
+import { EditTradeModal } from "./EditTradeModal";
+import { DeleteTradeConfirm } from "./DeleteTradeConfirm";
 
 export function HistoryPage() {
   const { setMeta } = useOutletContext();
+  const [editingTrade, setEditingTrade] = useState(null);
+  const [deletingTrade, setDeletingTrade] = useState(null);
 
   const { data, error, isPending } = useQuery({
     queryKey: ["trades"],
@@ -34,7 +38,14 @@ export function HistoryPage() {
         </div>
       </div>
 
-      {data.trades.length > 0 ? <TradeHistoryTable trades={data.trades} /> : <EmptyState />}
+      {data.trades.length > 0 ? (
+        <TradeHistoryTable trades={data.trades} onEdit={setEditingTrade} onDelete={setDeletingTrade} />
+      ) : (
+        <EmptyState />
+      )}
+
+      <EditTradeModal trade={editingTrade} onClose={() => setEditingTrade(null)} />
+      <DeleteTradeConfirm trade={deletingTrade} onClose={() => setDeletingTrade(null)} />
     </div>
   );
 }

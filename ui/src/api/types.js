@@ -220,6 +220,13 @@
  */
 
 /**
+ * @typedef {Object} TradeUpdateRequest
+ * @property {number} shares
+ * @property {number} pricePerShare
+ * @property {string} date - YYYY-MM-DD
+ */
+
+/**
  * @typedef {Object} RefreshFailure
  * @property {string} ticker
  * @property {string} error

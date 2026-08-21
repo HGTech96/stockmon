@@ -15,6 +15,7 @@ async function request(path, options) {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+  if (res.status === 204) return null;
   const body = await res.json();
   if (!res.ok) {
     throw new Error(body.error ?? "Request failed");

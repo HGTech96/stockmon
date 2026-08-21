@@ -188,3 +188,86 @@ def test_realized_pnl_oversell_raises_position_error() -> None:
     ]
     with pytest.raises(PositionError):
         compute_realized_pnl(trades)
+
+
+# Phase 8 -- derive_position doubles as the full-sequence validator for
+# edit/delete: the service layer builds the hypothetical post-edit /
+# post-delete event list and feeds it here. These tests simulate that by
+# constructing the trade list a caller would build after applying an edit
+# or a delete, and checking derive_position accepts or rejects it.
+
+
+def test_sequence_rejects_buy_edited_down_below_later_sells_need() -> None:
+    # Original: buy 10, sell 8 -- valid. Simulate editing the buy down to 5.
+    trades = [
+        _buy("5", "100.00", date(2026, 1, 1)),
+        _sell("8", "150.00", date(2026, 1, 10)),
+    ]
+    with pytest.raises(PositionError):
+        derive_position(trades)
+
+
+def test_sequence_reorder_by_date_change_invalidates_at_new_position() -> None:
+    # Original valid order: buy 10 (day1), buy 5 (day5), sell 12 (day10).
+    # Simulate moving the day5 buy's date to day15 (after the sell) --
+    # after a stable re-sort by date, the sell now only has 10 shares
+    # behind it and oversells.
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("12", "150.00", date(2026, 1, 10)),
+        _buy("5", "120.00", date(2026, 1, 15)),
+    ]
+    with pytest.raises(PositionError):
+        derive_position(trades)
+
+
+def test_sequence_rejects_deleting_a_buy_a_later_sell_depends_on() -> None:
+    # Original: buy 5 (day1), buy 5 (day5), sell 8 (day10) -- valid.
+    # Simulate deleting the day5 buy: only the day1 buy and the sell remain.
+    trades = [
+        _buy("5", "100.00", date(2026, 1, 1)),
+        _sell("8", "150.00", date(2026, 1, 10)),
+    ]
+    with pytest.raises(PositionError):
+        derive_position(trades)
+
+
+def test_sequence_accepts_valid_edit() -> None:
+    # Simulate editing the day10 sell's price only (shares/date unchanged) --
+    # still a valid sequence.
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("4", "160.00", date(2026, 1, 10)),
+    ]
+    position = derive_position(trades)
+    assert position is not None
+    assert position.shares_held == Decimal(6)
+
+
+def test_sequence_accepts_valid_delete() -> None:
+    # Original: buy 10 (day1), buy 5 (day5), sell 8 (day10). Simulate
+    # deleting the day5 buy but reducing... actually simulate deleting a
+    # buy the sell does NOT depend on: buy 10 (day1) alone covers sell 8.
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("8", "150.00", date(2026, 1, 10)),
+    ]
+    position = derive_position(trades)
+    assert position is not None
+    assert position.shares_held == Decimal(2)
+
+
+def test_sequence_edit_closes_then_correctly_reopens_position() -> None:
+    # buy 10 (day1), sell 10 (day10) closes, buy 5 (day20) reopens.
+    # Simulate editing the reopening buy's price only.
+    trades = [
+        _buy("10", "100.00", date(2026, 1, 1)),
+        _sell("10", "150.00", date(2026, 1, 10)),
+        _buy("5", "220.00", date(2026, 1, 20)),
+    ]
+    position = derive_position(trades)
+    assert position == Position(
+        shares_held=Decimal(5),
+        avg_purchase_price=Decimal(220),
+        amount_invested=Decimal(1100),
+    )

@@ -151,3 +151,91 @@ def test_get_trades_returns_history_newest_first(client, db) -> None:
     assert trades[0]["totalUsd"] == 600.0
     assert trades[1]["action"] == "buy"
     assert trades[1]["realizedPnlUsd"] is None
+
+
+def test_put_trade_updates_and_returns_recalculated_position(client, db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.")
+    trade = Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
+    db.add(trade)
+    db.commit()
+    db.refresh(trade)
+
+    r = client.put(f"/api/trades/{trade.id}", json={"shares": 20, "pricePerShare": 100, "date": "2026-01-01"})
+
+    assert r.status_code == 200
+    body = r.json()
+    assert set(body.keys()) == TRADE_RESPONSE_KEYS
+    assert set(body["trade"].keys()) == TRADE_ITEM_KEYS
+    assert body["trade"]["shares"] == 20.0
+    assert body["trade"]["ticker"] == "AAPL"
+    assert body["updatedPosition"]["sharesHeld"] == 20.0
+
+
+def test_put_trade_oversell_returns_422(client, db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.")
+    buy = Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
+    db.add(buy)
+    db.commit()
+    db.refresh(buy)
+    db.add(Trade(stock_id=stock.id, action="sell", shares=Decimal(8), price_per_share=Decimal(150), trade_date=date(2026, 1, 10)))
+    db.commit()
+
+    r = client.put(f"/api/trades/{buy.id}", json={"shares": 5, "pricePerShare": 100, "date": "2026-01-01"})
+
+    assert r.status_code == 422
+    assert set(r.json().keys()) == {"error"}
+
+
+def test_put_trade_invalid_field_returns_422(client, db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.")
+    trade = Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
+    db.add(trade)
+    db.commit()
+    db.refresh(trade)
+
+    r = client.put(f"/api/trades/{trade.id}", json={"shares": 0, "pricePerShare": 100, "date": "2026-01-01"})
+
+    assert r.status_code == 422
+
+
+def test_put_trade_not_found_returns_404(client, db) -> None:
+    r = client.put("/api/trades/999", json={"shares": 1, "pricePerShare": 10, "date": "2026-01-01"})
+
+    assert r.status_code == 404
+    assert set(r.json().keys()) == {"error"}
+
+
+def test_delete_trade_returns_204(client, db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.")
+    trade = Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
+    db.add(trade)
+    db.commit()
+    db.refresh(trade)
+
+    r = client.delete(f"/api/trades/{trade.id}")
+
+    assert r.status_code == 204
+    assert db.query(Trade).filter(Trade.id == trade.id).first() is None
+
+
+def test_delete_trade_oversell_returns_422(client, db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.")
+    first_buy = Trade(stock_id=stock.id, action="buy", shares=Decimal(5), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
+    second_buy = Trade(stock_id=stock.id, action="buy", shares=Decimal(5), price_per_share=Decimal(100), trade_date=date(2026, 1, 5))
+    db.add_all([first_buy, second_buy])
+    db.commit()
+    db.refresh(second_buy)
+    db.add(Trade(stock_id=stock.id, action="sell", shares=Decimal(8), price_per_share=Decimal(150), trade_date=date(2026, 1, 10)))
+    db.commit()
+
+    r = client.delete(f"/api/trades/{second_buy.id}")
+
+    assert r.status_code == 422
+    assert set(r.json().keys()) == {"error"}
+
+
+def test_delete_trade_not_found_returns_404(client, db) -> None:
+    r = client.delete("/api/trades/999")
+
+    assert r.status_code == 404
+    assert set(r.json().keys()) == {"error"}

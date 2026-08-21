@@ -15,6 +15,12 @@ class TradeRequest(CamelModel):
     date: date
 
 
+class TradeUpdateRequest(CamelModel):
+    shares: Decimal
+    price_per_share: Decimal
+    date: date
+
+
 class TradeItemSchema(CamelModel):
     id: int
     ticker: str

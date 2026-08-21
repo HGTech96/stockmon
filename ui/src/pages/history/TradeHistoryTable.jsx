@@ -8,14 +8,19 @@ const HEADERS = [
   { label: "Price", align: "right" },
   { label: "Total", align: "right" },
   { label: "Realized P/L", align: "right" },
+  { label: "", align: "right" },
 ];
 
 /**
- * @param {{ trades: import('../../api/types').TradeHistoryEntry[] }} props
+ * @param {{
+ *   trades: import('../../api/types').TradeHistoryEntry[],
+ *   onEdit: (trade: import('../../api/types').TradeHistoryEntry) => void,
+ *   onDelete: (trade: import('../../api/types').TradeHistoryEntry) => void,
+ * }} props
  * Table shell + one <TradeHistoryRow/> per entry, in array order -- the
  * API sends trades newest-first already, no client sorting.
  */
-export function TradeHistoryTable({ trades }) {
+export function TradeHistoryTable({ trades, onEdit, onDelete }) {
   return (
     <div className="overflow-hidden rounded-DEFAULT border border-border bg-surface shadow-card">
       <div className="overflow-x-auto">
@@ -36,7 +41,7 @@ export function TradeHistoryTable({ trades }) {
           </thead>
           <tbody>
             {trades.map((trade) => (
-              <TradeHistoryRow key={trade.id} trade={trade} />
+              <TradeHistoryRow key={trade.id} trade={trade} onEdit={onEdit} onDelete={onDelete} />
             ))}
           </tbody>
         </table>

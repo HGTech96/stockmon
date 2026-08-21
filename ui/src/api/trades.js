@@ -15,3 +15,20 @@ export function postTrade(payload) {
 export function getTrades() {
   return request("/trades");
 }
+
+/**
+ * @param {number} id
+ * @param {import('./types').TradeUpdateRequest} payload
+ * @returns {Promise<import('./types').TradeResponse>}
+ */
+export function putTrade(id, payload) {
+  return request(`/trades/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+/** @param {number} id */
+export function deleteTrade(id) {
+  return request(`/trades/${id}`, { method: "DELETE" });
+}

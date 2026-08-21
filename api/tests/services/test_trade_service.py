@@ -3,7 +3,15 @@ from decimal import Decimal
 
 import pytest
 
-from stockmon.services.trade_service import TradeValidationError, list_trade_history, record_trade
+from stockmon.db.models import Trade
+from stockmon.services.trade_service import (
+    TradeNotFoundError,
+    TradeValidationError,
+    delete_trade,
+    list_trade_history,
+    record_trade,
+    update_trade,
+)
 from tests.conftest import make_stock
 
 
@@ -131,3 +139,81 @@ def test_list_trade_history_totals_and_realized_pnl(db) -> None:
     assert sell.realized_pnl_usd == Decimal(200)
     assert buy.total_usd == Decimal(1000)
     assert buy.realized_pnl_usd is None
+
+
+def test_update_trade_recalculates_position(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    buy = record_trade(db, "AAPL", "buy", Decimal(10), Decimal(100), date(2026, 1, 1)).trade
+    record_trade(db, "AAPL", "sell", Decimal(4), Decimal(150), date(2026, 1, 10))
+
+    result = update_trade(db, buy.id, Decimal(20), Decimal(100), date(2026, 1, 1))
+
+    assert result.trade.shares == Decimal(20)
+    assert result.updated_position is not None
+    assert result.updated_position.shares_held == Decimal(16)
+
+
+def test_update_trade_not_found_raises(db) -> None:
+    with pytest.raises(TradeNotFoundError):
+        update_trade(db, 999, Decimal(1), Decimal(10), date(2026, 1, 1))
+
+
+def test_update_trade_oversell_rejected_and_db_unchanged(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    buy = record_trade(db, "AAPL", "buy", Decimal(10), Decimal(100), date(2026, 1, 1)).trade
+    record_trade(db, "AAPL", "sell", Decimal(8), Decimal(150), date(2026, 1, 10))
+
+    with pytest.raises(TradeValidationError):
+        update_trade(db, buy.id, Decimal(5), Decimal(100), date(2026, 1, 1))
+
+    unchanged = db.query(Trade).filter(Trade.id == buy.id).first()
+    assert unchanged.shares == Decimal(10)
+
+
+def test_update_trade_invalid_field_rejected(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    buy = record_trade(db, "AAPL", "buy", Decimal(10), Decimal(100), date(2026, 1, 1)).trade
+
+    with pytest.raises(TradeValidationError, match="Shares must be greater than 0"):
+        update_trade(db, buy.id, Decimal(0), Decimal(100), date(2026, 1, 1))
+
+
+def test_delete_trade_recalculates_position(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    record_trade(db, "AAPL", "buy", Decimal(10), Decimal(100), date(2026, 1, 1))
+    second_buy = record_trade(db, "AAPL", "buy", Decimal(5), Decimal(120), date(2026, 1, 5)).trade
+
+    position = delete_trade(db, second_buy.id)
+
+    assert position is not None
+    assert position.shares_held == Decimal(10)
+    assert db.query(Trade).filter(Trade.id == second_buy.id).first() is None
+
+
+def test_delete_trade_leaving_no_shares_returns_none(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    record_trade(db, "AAPL", "buy", Decimal(10), Decimal(100), date(2026, 1, 1))
+    sell = record_trade(db, "AAPL", "sell", Decimal(10), Decimal(150), date(2026, 1, 10)).trade
+    reopen = record_trade(db, "AAPL", "buy", Decimal(5), Decimal(200), date(2026, 1, 20)).trade
+
+    position = delete_trade(db, reopen.id)
+
+    assert position is None
+    assert sell.id is not None
+
+
+def test_delete_trade_not_found_raises(db) -> None:
+    with pytest.raises(TradeNotFoundError):
+        delete_trade(db, 999)
+
+
+def test_delete_trade_oversell_rejected_and_db_unchanged(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    record_trade(db, "AAPL", "buy", Decimal(5), Decimal(100), date(2026, 1, 1))
+    second_buy = record_trade(db, "AAPL", "buy", Decimal(5), Decimal(100), date(2026, 1, 5)).trade
+    record_trade(db, "AAPL", "sell", Decimal(8), Decimal(150), date(2026, 1, 10))
+
+    with pytest.raises(TradeValidationError):
+        delete_trade(db, second_buy.id)
+
+    assert db.query(Trade).filter(Trade.id == second_buy.id).first() is not None
