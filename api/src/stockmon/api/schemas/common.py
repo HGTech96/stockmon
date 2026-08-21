@@ -4,6 +4,7 @@ from typing import Literal
 from stockmon.api.schemas.base import CamelModel, Money
 from stockmon.core.evaluation import Suggestion, Warning
 from stockmon.core.freshness import Freshness
+from stockmon.core.money import MoneySummary
 from stockmon.core.position import ProfitTargetProgress
 
 
@@ -59,6 +60,26 @@ class WarningSchema(CamelModel):
     @classmethod
     def from_core(cls, warning: Warning) -> "WarningSchema":
         return cls(reason=warning.reason, text=warning.text)
+
+
+class MoneySchema(CamelModel):
+    cash_available: Money
+    net_deposited: Money
+    realized_earned: Money
+    realized_lost: Money
+    unrealized_gain_open: Money
+    unrealized_loss_open: Money
+
+    @classmethod
+    def from_core(cls, summary: MoneySummary) -> "MoneySchema":
+        return cls(
+            cash_available=summary.cash_available,
+            net_deposited=summary.net_deposited,
+            realized_earned=summary.realized_earned,
+            realized_lost=summary.realized_lost,
+            unrealized_gain_open=summary.unrealized_gain_open,
+            unrealized_loss_open=summary.unrealized_loss_open,
+        )
 
 
 class ProfitTargetSchema(CamelModel):

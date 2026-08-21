@@ -10,6 +10,7 @@ def test_no_stocks_has_empty_list_and_no_summary(db) -> None:
     dashboard = build_dashboard(db)
     assert dashboard.stocks == []
     assert dashboard.summary is None
+    assert dashboard.money is None
 
 
 def test_no_trades_has_null_summary(db) -> None:
@@ -38,6 +39,8 @@ def test_summary_aggregates_owned_positions(db) -> None:
     assert dashboard.summary.total_current_value == Decimal(1200)
     assert dashboard.summary.total_profit_loss == Decimal(200)
     assert dashboard.summary.total_profit_loss_pct == Decimal(20)
+    assert dashboard.money is not None
+    assert dashboard.money.unrealized_gain_open == Decimal(200)
 
 
 def test_dashboard_rows_are_sorted(db) -> None:

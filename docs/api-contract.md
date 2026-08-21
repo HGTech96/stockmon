@@ -386,19 +386,49 @@ Any edit, delete, buy, or withdrawal that would drive either total negative
 at any point in the replay is rejected atomically (422), never partially
 applied.
 
+**Same-date ordering (deliberate rule):** `cash_events` and `trades` are
+separate tables with independent id sequences, so same-date events need an
+explicit tie-break to be replayed in a well-defined order. Rule: **money-in
+before money-out** — deposits and sells apply before withdrawals and buys on
+the same date. This matches how people actually record activity (deposit
+then buy same day; sell then withdraw same day) and avoids spuriously
+rejecting either. This is a business rule, not a sort-stability detail — do
+not change it to id/insertion order.
+
+**Error messages are contextual** — each rejection path has its own wording
+so the response tells the user what to do next:
+
+| Path | Message |
+|---|---|
+| Buy exceeds cash | `Insufficient cash — record a deposit first.` |
+| Withdraw exceeds cash | `Can't withdraw more than your available cash.` |
+| Deleting a cash event strands a later buy/withdrawal | `Can't remove this — a later buy or withdrawal depends on it.` |
+| Editing a trade strands the cash sequence | `Can't make this change — a later buy or withdrawal depends on it.` |
+| Deleting a trade strands the cash sequence | `Can't remove this — a later buy or withdrawal depends on it.` |
+
 ## The six money figures
 
-Computed backend-side, added to the summary object on GET /api/stocks
-(dashboard) and GET /api/portfolio:
+Computed backend-side. `money` is a **sibling top-level field** on the GET
+/api/stocks (dashboard) and GET /api/portfolio responses — NOT nested inside
+`summary`. This matters: `summary` is `null` when `hasTrades` is false (no
+positions ever opened), but cash can exist with zero trades (a deposit made,
+nothing bought yet) — nesting `money` inside `summary` would hide that cash
+balance entirely. `money` is `null` only when there is no cash activity and
+no trades at all; otherwise present, independent of `hasTrades`/`summary`.
 
 ```json
-"money": {
-  "cashAvailable": 140.00,
-  "netDeposited": 100.00,
-  "realizedEarned": 40.00,
-  "realizedLost": 0.00,
-  "unrealizedGainOpen": 0.00,
-  "unrealizedLossOpen": 0.00
+{
+  "meta": { ... },
+  "summary": null,
+  "money": {
+    "cashAvailable": 140.00,
+    "netDeposited": 100.00,
+    "realizedEarned": 40.00,
+    "realizedLost": 0.00,
+    "unrealizedGainOpen": 0.00,
+    "unrealizedLossOpen": 0.00
+  },
+  "stocks": [ ... ]
 }
 ```
 

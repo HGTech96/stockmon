@@ -6,8 +6,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from stockmon.api.routes import portfolio, refresh, settings, stocks, trades
+from stockmon.api.routes import cash, portfolio, refresh, settings, stocks, trades
 from stockmon.config import settings as app_settings
+from stockmon.services.cash_service import CashNotFoundError, CashValidationError
 from stockmon.services.stock_service import StockNotFoundError
 from stockmon.services.trade_service import TradeNotFoundError, TradeValidationError
 
@@ -23,6 +24,7 @@ app.include_router(stocks.router)
 app.include_router(portfolio.router)
 app.include_router(trades.router)
 app.include_router(settings.router)
+app.include_router(cash.router)
 
 
 @app.get("/api/health")
@@ -48,6 +50,16 @@ def handle_stock_not_found_error(request: Request, exc: StockNotFoundError) -> J
 
 @app.exception_handler(TradeNotFoundError)
 def handle_trade_not_found_error(request: Request, exc: TradeNotFoundError) -> JSONResponse:
+    return JSONResponse(status_code=404, content={"error": str(exc)})
+
+
+@app.exception_handler(CashValidationError)
+def handle_cash_validation_error(request: Request, exc: CashValidationError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"error": str(exc)})
+
+
+@app.exception_handler(CashNotFoundError)
+def handle_cash_not_found_error(request: Request, exc: CashNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"error": str(exc)})
 
 

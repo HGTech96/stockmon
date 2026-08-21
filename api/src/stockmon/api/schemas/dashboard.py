@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import Field
 
 from stockmon.api.schemas.base import CamelModel, Money
-from stockmon.api.schemas.common import MetaSchema, WarningSchema
+from stockmon.api.schemas.common import MetaSchema, MoneySchema, WarningSchema
 from stockmon.core.summary import Summary
 from stockmon.services.dashboard_service import Dashboard, DashboardStockRow
 
@@ -65,6 +65,7 @@ class SummarySchema(CamelModel):
 class DashboardResponse(CamelModel):
     meta: MetaSchema
     summary: SummarySchema | None
+    money: MoneySchema | None
     stocks: list[DashboardStockSchema]
 
     @classmethod
@@ -72,5 +73,6 @@ class DashboardResponse(CamelModel):
         return cls(
             meta=meta,
             summary=SummarySchema.from_core(dashboard.summary) if dashboard.summary else None,
+            money=MoneySchema.from_core(dashboard.money) if dashboard.money else None,
             stocks=[DashboardStockSchema.from_core(row) for row in dashboard.stocks],
         )

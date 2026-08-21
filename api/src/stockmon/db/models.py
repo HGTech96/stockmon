@@ -87,6 +87,24 @@ class ProfitTarget(Base):
     stock: Mapped["Stock"] = relationship(back_populates="profit_target")
 
 
+class CashEvent(Base):
+    """External money in/out (deposit/withdraw), event-sourced like Trade --
+    cash balance is derived by replaying these plus all trades, never stored
+    as a mutable number."""
+
+    __tablename__ = "cash_events"
+    __table_args__ = (
+        CheckConstraint("amount_usd > 0", name="ck_cash_event_amount_positive"),
+        CheckConstraint("type IN ('deposit', 'withdraw')", name="ck_cash_event_type_valid"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    type: Mapped[str] = mapped_column(String(8))
+    amount_usd: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+    event_date: Mapped[date] = mapped_column(Date)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class RefreshStatus(Base):
     """Single-row table (id is always 1) tracking the outcome of the most
     recent POST /api/refresh, used to compute the meta.isStale/dataAsOf

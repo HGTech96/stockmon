@@ -72,14 +72,14 @@ Do not start a phase before the previous one is done and committed.
 
 ## Phase 9 — Cash model + P/L breakdown
 ### 9a Backend
-- [ ] Contract v1.5 (cash model, /api/cash, money block)
-- [ ] cash_events table + migration
-- [ ] Core: cash balance derivation (replay deposits/withdrawals/buys/sells)
-- [ ] Core: sequence validation extended — buys/withdrawals can't oversell cash
-- [ ] Core: the six money figures (pure functions + tests, incl. the identity)
-- [ ] GET/POST /api/cash, DELETE /api/cash/{id}
-- [ ] money block on dashboard + portfolio summaries
-- [ ] Buy rejected (422) on insufficient cash
+- [x] Contract v1.5 (cash model, /api/cash, money block)
+- [x] cash_events table + migration
+- [x] Core: cash balance derivation (replay deposits/withdrawals/buys/sells)
+- [x] Core: sequence validation extended — buys/withdrawals can't oversell cash
+- [x] Core: the six money figures (pure functions + tests, incl. the identity)
+- [x] GET/POST /api/cash, DELETE /api/cash/{id}
+- [x] money block on dashboard + portfolio summaries
+- [x] Buy rejected (422) on insufficient cash
 ### 9b Design (static mockup, dummy numbers) — after 9a
 ### 9c Design review — after 9b
 ### 9d Finalization (wire approved design to real endpoints) — after 9c

@@ -5,9 +5,16 @@ from typing import Literal
 
 from sqlalchemy.orm import Session
 
+from stockmon.core.cash import CashError, CashFlowEvent
 from stockmon.core.position import Position, PositionError, TradeEvent, compute_realized_pnl, derive_position
 from stockmon.db.models import Stock
 from stockmon.db.models import Trade as TradeRow
+from stockmon.services.cash_service import (
+    load_all_cash_event_flow_events,
+    load_all_trade_flow_events,
+    trade_row_to_flow_event,
+    validate_cash_sequence,
+)
 
 
 class TradeValidationError(Exception):
@@ -59,6 +66,28 @@ def _load_trade_rows(db: Session, stock_id: int) -> list[TradeRow]:
     )
 
 
+def _load_all_trade_rows(db: Session) -> list[TradeRow]:
+    return db.query(TradeRow).order_by(TradeRow.trade_date, TradeRow.id).all()
+
+
+def _validate_global_cash_sequence(
+    db: Session,
+    candidate_trade_flows: list[CashFlowEvent],
+    error_message: str,
+) -> None:
+    """Rebuilds the full cash-flow picture (the given candidate trade-side
+    flows, all tickers, + the unchanged cash-event log) and validates it via
+    validate_cash_sequence -- the one source of truth for the never-negative-
+    cash rule. Used by update_trade/delete_trade, which must re-check this
+    unconditionally: shrinking or removing a SELL's proceeds can strand a
+    later buy or withdrawal just as easily as editing a buy can."""
+    candidate_cash_flows = candidate_trade_flows + load_all_cash_event_flow_events(db)
+    try:
+        validate_cash_sequence(candidate_cash_flows)
+    except CashError as exc:
+        raise TradeValidationError(error_message) from exc
+
+
 def _to_events(rows: list[TradeRow]) -> list[TradeEvent]:
     return [
         TradeEvent(action=row.action, shares=row.shares, price_per_share=row.price_per_share, date=row.trade_date)
@@ -97,6 +126,17 @@ def record_trade(
             raise TradeValidationError(
                 f"Cannot sell {shares} shares of {ticker}; only {position_before.shares_held} held"
             )
+
+    if action == "buy":
+        candidate_cash_flows = (
+            load_all_trade_flow_events(db)
+            + load_all_cash_event_flow_events(db)
+            + [CashFlowEvent(kind="buy", amount=shares * price_per_share, date=trade_date)]
+        )
+        try:
+            validate_cash_sequence(candidate_cash_flows)
+        except CashError as exc:
+            raise TradeValidationError("Insufficient cash — record a deposit first.") from exc
 
     trade = TradeRow(
         stock_id=stock.id,
@@ -152,6 +192,16 @@ def update_trade(
     except PositionError as exc:
         raise TradeValidationError(str(exc)) from exc
 
+    candidate_trade_flows = [
+        CashFlowEvent(kind=row.action, amount=shares * price_per_share, date=trade_date)
+        if row.id == trade_id
+        else trade_row_to_flow_event(row)
+        for row in _load_all_trade_rows(db)
+    ]
+    _validate_global_cash_sequence(
+        db, candidate_trade_flows, "Can't make this change — a later buy or withdrawal depends on it."
+    )
+
     trade.shares = shares
     trade.price_per_share = price_per_share
     trade.trade_date = trade_date
@@ -176,6 +226,13 @@ def delete_trade(db: Session, trade_id: int) -> Position | None:
         updated_position = derive_position(remaining_events)
     except PositionError as exc:
         raise TradeValidationError(str(exc)) from exc
+
+    candidate_trade_flows = [
+        trade_row_to_flow_event(row) for row in _load_all_trade_rows(db) if row.id != trade_id
+    ]
+    _validate_global_cash_sequence(
+        db, candidate_trade_flows, "Can't remove this — a later buy or withdrawal depends on it."
+    )
 
     db.delete(trade)
     db.commit()

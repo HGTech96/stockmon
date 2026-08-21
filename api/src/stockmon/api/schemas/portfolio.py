@@ -1,7 +1,7 @@
 from typing import Literal
 
 from stockmon.api.schemas.base import CamelModel, Money
-from stockmon.api.schemas.common import MetaSchema, ProfitTargetSchema
+from stockmon.api.schemas.common import MetaSchema, MoneySchema, ProfitTargetSchema
 from stockmon.api.schemas.dashboard import SummarySchema
 from stockmon.services.portfolio_service import Portfolio, PortfolioPosition
 
@@ -40,6 +40,7 @@ class PortfolioResponse(CamelModel):
     meta: MetaSchema
     has_trades: bool
     summary: SummarySchema | None
+    money: MoneySchema | None
     positions: list[PortfolioPositionSchema]
     watchlist: list[str]
 
@@ -49,6 +50,7 @@ class PortfolioResponse(CamelModel):
             meta=meta,
             has_trades=portfolio.has_trades,
             summary=SummarySchema.from_core(portfolio.summary) if portfolio.summary else None,
+            money=MoneySchema.from_core(portfolio.money) if portfolio.money else None,
             positions=[PortfolioPositionSchema.from_core(p) for p in portfolio.positions],
             watchlist=portfolio.watchlist,
         )

@@ -8,7 +8,7 @@ DASHBOARD_META_KEYS = {"dataAsOf", "isStale", "staleMessage"}
 DASHBOARD_ROW_KEYS = {
     "ticker", "companyName", "currentPrice", "change1dPct", "status", "suggestion", "warning", "position",
 }
-DASHBOARD_TOP_KEYS = {"meta", "summary", "stocks"}
+DASHBOARD_TOP_KEYS = {"meta", "summary", "money", "stocks"}
 
 DETAIL_TOP_KEYS = {
     "meta", "ticker", "companyName", "currentPrice", "change1dPct", "status",
@@ -35,7 +35,27 @@ def test_dashboard_empty_watchlist(client) -> None:
     assert set(body.keys()) == DASHBOARD_TOP_KEYS
     assert set(body["meta"].keys()) == DASHBOARD_META_KEYS
     assert body["summary"] is None
+    assert body["money"] is None
     assert body["stocks"] == []
+
+
+def test_dashboard_money_present_with_deposit_only_and_no_trades(client, db) -> None:
+    """summary is null with no trades, but money is a SIBLING field, present
+    whenever there's any cash activity at all -- a deposit with zero trades
+    is a valid state that must still show its cash figures."""
+    client.post("/api/cash", json={"type": "deposit", "amountUsd": 100, "date": "2026-01-01"})
+
+    body = client.get("/api/stocks").json()
+
+    assert body["summary"] is None
+    assert body["money"] == {
+        "cashAvailable": 100.0,
+        "netDeposited": 100.0,
+        "realizedEarned": 0.0,
+        "realizedLost": 0.0,
+        "unrealizedGainOpen": 0.0,
+        "unrealizedLossOpen": 0.0,
+    }
 
 
 def test_dashboard_row_shape_and_sort_order(client, db) -> None:
@@ -79,6 +99,8 @@ def test_dashboard_position_present_for_owned_stock(client, db) -> None:
         "totalProfitLoss": 200.0,
         "totalProfitLossPct": 20.0,
     }
+    assert body["money"]["unrealizedGainOpen"] == 200.0
+    assert body["money"]["unrealizedLossOpen"] == 0.0
 
 
 def test_detail_ok_status_full_shape(client, db) -> None:

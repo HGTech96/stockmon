@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from stockmon.db.base import Base  # noqa: E402
-from stockmon.db.models import DailyPrice, Stock  # noqa: E402
+from stockmon.db.models import CashEvent, DailyPrice, Stock  # noqa: E402
 from stockmon.db.session import get_db  # noqa: E402
 from stockmon.main import app  # noqa: E402
 
@@ -56,6 +56,26 @@ def make_stock(
     db.commit()
     db.refresh(stock)
     return stock
+
+
+def make_deposit(
+    db: Session,
+    amount: str = "100000",
+    event_date: date | None = None,
+) -> CashEvent:
+    """Seeds a deposit directly (bypassing the service layer, like make_stock
+    does for Stock) so buy-side tests have enough cash available without
+    every test needing its own precisely-sized deposit. Defaults to a large
+    amount dated far in the past so it lands before any trade in a test."""
+    event = CashEvent(
+        type="deposit",
+        amount_usd=Decimal(amount),
+        event_date=event_date or date(2000, 1, 1),
+    )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
 
 
 def make_daily_prices(

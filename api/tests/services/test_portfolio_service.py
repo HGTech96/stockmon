@@ -14,6 +14,7 @@ def test_empty_state_no_trades(db) -> None:
 
     assert portfolio.has_trades is False
     assert portfolio.summary is None
+    assert portfolio.money is None
     assert portfolio.positions == []
     assert portfolio.watchlist == ["AAPL", "NVDA"]
 
@@ -35,6 +36,7 @@ def test_open_position_appears_with_profit_target(db) -> None:
     assert position.position.shares_held == Decimal(25)
     assert portfolio.summary is not None
     assert portfolio.summary.total_invested == Decimal("2202.50")
+    assert portfolio.money is not None
 
 
 def test_closed_position_excluded_from_positions_list(db) -> None:
@@ -53,6 +55,7 @@ def test_closed_position_excluded_from_positions_list(db) -> None:
     assert portfolio.has_trades is True
     assert portfolio.positions == []
     assert portfolio.summary is None
+    assert portfolio.money is not None  # trades exist even though summary is null
 
 
 def test_watchlist_present_even_with_no_stocks(db) -> None:

@@ -4,7 +4,7 @@ from decimal import Decimal
 from stockmon.db.models import Trade
 from tests.conftest import make_daily_prices, make_stock
 
-PORTFOLIO_TOP_KEYS = {"meta", "hasTrades", "summary", "positions", "watchlist"}
+PORTFOLIO_TOP_KEYS = {"meta", "hasTrades", "summary", "money", "positions", "watchlist"}
 POSITION_KEYS = {
     "ticker", "companyName", "sharesHeld", "avgPurchasePrice", "amountInvested", "currentValue",
     "profitLoss", "profitLossPct", "profitTarget", "status", "suggestion",
@@ -22,8 +22,22 @@ def test_empty_state(client, db) -> None:
     assert set(body.keys()) == PORTFOLIO_TOP_KEYS
     assert body["hasTrades"] is False
     assert body["summary"] is None
+    assert body["money"] is None
     assert body["positions"] == []
     assert body["watchlist"] == ["AAPL", "NVDA"]
+
+
+def test_money_present_with_deposit_only_and_no_trades(client, db) -> None:
+    """summary/hasTrades reflect no trades, but money is a SIBLING field,
+    present whenever there's any cash activity at all."""
+    client.post("/api/cash", json={"type": "deposit", "amountUsd": 250, "date": "2026-01-01"})
+
+    body = client.get("/api/portfolio").json()
+
+    assert body["hasTrades"] is False
+    assert body["summary"] is None
+    assert body["money"]["cashAvailable"] == 250.0
+    assert body["money"]["netDeposited"] == 250.0
 
 
 def test_open_position_shape(client, db) -> None:
@@ -41,6 +55,7 @@ def test_open_position_shape(client, db) -> None:
     assert position["ticker"] == "NVDA"
     assert position["sharesHeld"] == 25.0
     assert position["amountInvested"] == 2202.5
+    assert body["money"] is not None
 
 
 def test_closed_position_excluded(client, db) -> None:

@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 from stockmon.db.models import Trade
-from tests.conftest import make_stock
+from tests.conftest import make_deposit, make_stock
 
 TRADE_RESPONSE_KEYS = {"trade", "updatedPosition"}
 TRADE_ITEM_KEYS = {"id", "ticker", "action", "shares", "pricePerShare", "date"}
@@ -11,6 +11,7 @@ UPDATED_POSITION_KEYS = {"ticker", "sharesHeld", "avgPurchasePrice", "amountInve
 
 def test_buy_opens_position(client, db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
+    make_deposit(db)
 
     r = client.post(
         "/api/trades",
@@ -131,6 +132,7 @@ def test_get_trades_empty(client, db) -> None:
 
 def test_get_trades_returns_history_newest_first(client, db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
+    make_deposit(db)
     client.post(
         "/api/trades",
         json={"ticker": "AAPL", "action": "buy", "shares": 10, "pricePerShare": 100, "date": "2026-01-01"},
@@ -155,6 +157,7 @@ def test_get_trades_returns_history_newest_first(client, db) -> None:
 
 def test_put_trade_updates_and_returns_recalculated_position(client, db) -> None:
     stock = make_stock(db, "AAPL", "Apple Inc.")
+    make_deposit(db)
     trade = Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
     db.add(trade)
     db.commit()
