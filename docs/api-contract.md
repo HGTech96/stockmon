@@ -348,6 +348,106 @@ cumulative buys. Reject the whole operation if violated — never partially appl
 Because positions are derived, a successful edit/delete automatically corrects
 average cost, current position, P/L, portfolio totals, and realized P/L on
 later sells with no further action.
+
+
+# STOCKMON v1.5 -  cash model + P/L breakdown
+
+Append to docs/api-contract.md. Introduces a cash balance, external
+deposits/withdrawals, and a six-figure money breakdown. No existing endpoint
+shapes are removed; summary objects gain fields.
+
+## Concept: cash
+
+The app now tracks a cash balance — recyclable money held inside the app,
+separate from money invested in stocks.
+
+- **Deposit** (external money in): cash increases.
+- **Withdraw** (money out to the user's pocket): cash decreases; rejected if
+  it exceeds available cash.
+- **Buy**: cash decreases by (shares × pricePerShare); REJECTED (422) if it
+  exceeds available cash at that point in the trade sequence.
+- **Sell**: cash increases by proceeds automatically — recording the sell is
+  what returns money to cash.
+
+Deposits and withdrawals are stored as their own event log (a `cash_events`
+table), mirroring the event-sourced trades approach: cash balance is DERIVED
+by replaying deposits, withdrawals, buys, and sells in chronological order,
+never stored as a mutable number.
+
+## Sequence validation (extends the Phase 8 replay)
+
+The trade-sequence replay now tracks TWO running totals per step, in
+chronological order across all trades + cash events:
+1. Shares per ticker — a sell may never exceed shares held (existing rule).
+2. Cash — a buy may never exceed cash available; a withdrawal may never
+   exceed cash available (new rule).
+
+Any edit, delete, buy, or withdrawal that would drive either total negative
+at any point in the replay is rejected atomically (422), never partially
+applied.
+
+## The six money figures
+
+Computed backend-side, added to the summary object on GET /api/stocks
+(dashboard) and GET /api/portfolio:
+
+```json
+"money": {
+  "cashAvailable": 140.00,
+  "netDeposited": 100.00,
+  "realizedEarned": 40.00,
+  "realizedLost": 0.00,
+  "unrealizedGainOpen": 0.00,
+  "unrealizedLossOpen": 0.00
+}
+```
+
+- `cashAvailable`: current derived cash balance.
+- `netDeposited`: total deposits − total withdrawals (real external money in).
+- `realizedEarned`: sum of positive realizedPnl across all sells (banked gains).
+- `realizedLost`: sum of negative realizedPnl across all sells, as a POSITIVE
+  number (banked losses; 0 when none).
+- `unrealizedGainOpen`: sum of profitLoss across currently-held positions that
+  are positive right now (0 contributes nothing).
+- `unrealizedLossOpen`: sum of profitLoss across currently-held positions that
+  are negative right now, as a POSITIVE number.
+
+Consistency identity (a built-in correctness check, not a field):
+cashAvailable + currentValueOfHoldings
+  = netDeposited + realizedEarned − realizedLost
+    + unrealizedGainOpen − unrealizedLossOpen
+
+## New endpoints
+
+```
+GET /api/cash
+  → { "meta": {...},
+      "cashAvailable": 140.00,
+      "events": [
+        { "id": 3, "type": "deposit",  "amountUsd": 100.00, "date": "2026-08-01" },
+        { "id": 4, "type": "withdraw", "amountUsd": 20.00,  "date": "2026-08-20" }
+      ] }
+  (events newest first; buys/sells are NOT listed here — they live in
+   /api/trades — this is the external-money log only)
+
+POST /api/cash
+  Request: { "type": "deposit" | "withdraw", "amountUsd": 100.00, "date": "2026-08-01" }
+  → 201 { "event": {...}, "cashAvailable": 140.00 }
+  → 422 { "error": "..." } if withdraw exceeds available cash, amount <= 0,
+        or date in the future / creates a negative-cash point in the sequence
+
+DELETE /api/cash/{id}
+  → 204
+  → 422 if removing the event would drive cash negative at any later point
+        (e.g. deleting a deposit that a later buy depended on)
+```
+
+## Effect on POST /api/trades (buy)
+
+- A buy is now rejected (422) when it exceeds cashAvailable at its point in
+  the sequence: `{ "error": "Insufficient cash — record a deposit first." }`
+- Response unchanged otherwise; a successful buy's effect on cash is reflected
+  in the next GET.
 ---
 
 ## Changelog
@@ -360,3 +460,9 @@ later sells with no further action.
 
 - v1.4: added PUT/DELETE /api/trades/{id} (edit shares/price/date, or delete;
   full-sequence oversell validation). No changes to evaluation rules.
+
+- v1.5: added cash model (cash_events log, derived balance), GET/POST /api/cash
+  and DELETE /api/cash/{id}, six-figure `money` block on dashboard and
+  portfolio summaries, and cash tracking in the sequence-replay validation
+  (buys and withdrawals cannot oversell cash). No changes to the suggestion/
+  evaluation rules.
