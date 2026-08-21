@@ -323,6 +323,31 @@ All recorded trades, newest first. No pagination.
 - `realizedPnlUsd`: sells only — (sale price − average purchase price at the
   time of that sale) × shares sold, computed from the trade log in core.
   `null` on buys.
+
+## Trade editing (v1.4)
+
+PUT /api/trades/{id}
+  Request: { "shares": 3, "pricePerShare": 188.00, "date": "2026-08-15" }
+  (ticker and action are NOT editable — omitted from the request)
+  → 200 { "trade": {...updated...}, "updatedPosition": {...recalculated...} | null }
+  → 422 { "error": "..." } if the change makes any later sell of this ticker
+        invalid (e.g. reduces an early buy below what a later sell needs)
+  → 422 { "error": "..." } basic field validation (shares > 0, price > 0,
+        date not in the future) applies as on POST
+  → 404 if id not found
+
+DELETE /api/trades/{id}
+  → 204
+  → 422 { "error": "..." } if deleting would leave a later sell of this
+        ticker overselling
+  → 404 if id not found
+
+Validation rule (both): after applying the change, replay ALL trades for the
+affected ticker in date order; at no point may cumulative sells exceed
+cumulative buys. Reject the whole operation if violated — never partially apply.
+Because positions are derived, a successful edit/delete automatically corrects
+average cost, current position, P/L, portfolio totals, and realized P/L on
+later sells with no further action.
 ---
 
 ## Changelog
@@ -332,3 +357,6 @@ All recorded trades, newest first. No pagination.
 - **A2** `profitTarget`: added `remainingDollars` (uncapped; see Portfolio notes).
 - **A3** Insufficient-history state: added `daysOfHistoryRequired` and `tradingDaysUntilReady` alongside `daysOfHistoryAvailable`.
 - No endpoint additions or removals. No changes to evaluation rules, checklist ids, thresholds, or precedence — the target-gated exit rule stands as specified in v1.
+
+- v1.4: added PUT/DELETE /api/trades/{id} (edit shares/price/date, or delete;
+  full-sequence oversell validation). No changes to evaluation rules.

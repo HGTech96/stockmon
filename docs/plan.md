@@ -56,3 +56,15 @@ Do not start a phase before the previous one is done and committed.
 - [x] Core: realized P/L per sell trade (pure function + tests)
 - [x] Backend: repository query, route, schema
 - [x] UI: History page + nav tab, table per design system
+
+## Phase 8 — Edit / delete trades
+- [x] Contract: PUT and DELETE /api/trades/{id} (see api-contract.md v1.4)
+- [x] Core: full trade-sequence validation (replay in date order; reject if
+      any sell exceeds shares held at that point) — pure function + tests
+      (reuses existing `derive_position` rather than a new function — see
+      docs/planning/phase-8-edit-trades.md)
+- [x] Backend: PUT (shares/price/date only), DELETE, both re-validating the
+      whole sequence for the affected ticker
+- [x] UI: edit + delete actions on trade history rows; edit modal (shares,
+      price, date only — ticker read-only); confirm dialogs stating the
+      downstream effect; invalidate stocks/portfolio/trades queries
