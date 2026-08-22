@@ -234,6 +234,23 @@ def test_delete_trade_oversell_rejected_and_db_unchanged(db) -> None:
     assert db.query(Trade).filter(Trade.id == second_buy.id).first() is not None
 
 
+def test_fractional_buy_draws_exact_cash_amount(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    record_cash_event(db, "deposit", Decimal("200.00"), date(2026, 1, 1))
+
+    # 1.256789 shares * 150.25 = exactly 188.83254725 -- leaves 11.16745275
+    # available (Decimal-exact, not rounded to cents). A buy needing one
+    # cent more must be rejected; a buy within the remaining balance must
+    # still succeed.
+    record_trade(db, "AAPL", "buy", Decimal("1.256789"), Decimal("150.25"), date(2026, 1, 2))
+
+    with pytest.raises(TradeValidationError, match="Insufficient cash"):
+        record_trade(db, "AAPL", "buy", Decimal("0.075"), Decimal("150.25"), date(2026, 1, 3))
+
+    # 0.074325 * 150.25 = 11.16733125, just inside the 11.16745275 remaining
+    record_trade(db, "AAPL", "buy", Decimal("0.074325"), Decimal("150.25"), date(2026, 1, 4))
+
+
 def test_buy_exceeding_cash_rejected_and_not_inserted(db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
     record_cash_event(db, "deposit", Decimal(500), date(2026, 1, 1))

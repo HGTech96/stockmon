@@ -59,7 +59,7 @@ class Trade(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     stock_id: Mapped[int] = mapped_column(ForeignKey("stocks.id"), index=True)
     action: Mapped[str] = mapped_column(String(4))
-    shares: Mapped[Decimal] = mapped_column(Numeric(12, 4))
+    shares: Mapped[Decimal] = mapped_column(Numeric(12, 6))
     price_per_share: Mapped[Decimal] = mapped_column(Numeric(12, 4))
     trade_date: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

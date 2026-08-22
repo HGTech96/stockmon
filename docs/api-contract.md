@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.1
+# stockmon — API Contract v1.6
 
 Base URL: `http://localhost:8000/api`
 
@@ -496,3 +496,8 @@ DELETE /api/cash/{id}
   portfolio summaries, and cash tracking in the sequence-replay validation
   (buys and withdrawals cannot oversell cash). No changes to the suggestion/
   evaluation rules.
+
+- v1.6: `shares` now accepts up to 6 decimal places (fractional shares);
+  `trades.shares` widened to `Numeric(12,6)`. No endpoint or field shape
+  changes — `shares` was always a raw number on the wire, just previously
+  whole-number in practice.

@@ -27,6 +27,20 @@ def test_buy_opens_position(client, db) -> None:
     assert body["updatedPosition"]["sharesHeld"] == 5.0
 
 
+def test_buy_accepts_fractional_shares(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    make_deposit(db)
+
+    r = client.post(
+        "/api/trades",
+        json={"ticker": "AAPL", "action": "buy", "shares": 1.25, "pricePerShare": 189.10, "date": "2026-01-01"},
+    )
+    assert r.status_code == 201
+    body = r.json()
+    assert body["trade"]["shares"] == 1.25
+    assert body["updatedPosition"]["sharesHeld"] == 1.25
+
+
 def test_sell_that_closes_position_returns_null(client, db) -> None:
     stock = make_stock(db, "AAPL", "Apple Inc.")
     db.add(Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1)))

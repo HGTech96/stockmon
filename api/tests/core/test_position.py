@@ -257,6 +257,32 @@ def test_sequence_accepts_valid_delete() -> None:
     assert position.shares_held == Decimal(2)
 
 
+def test_fractional_buys_average_over_combined_shares() -> None:
+    trades = [
+        _buy("1.25", "100.00", date(2026, 1, 1)),
+        _buy("0.75", "120.00", date(2026, 1, 5)),
+    ]
+    position = derive_position(trades)
+    assert position == Position(
+        shares_held=Decimal("2.0"),
+        avg_purchase_price=Decimal("107.5"),
+        amount_invested=Decimal("215.00"),
+    )
+
+
+def test_fractional_partial_sell() -> None:
+    trades = [
+        _buy("1.25", "100.00", date(2026, 1, 1)),
+        _buy("0.75", "120.00", date(2026, 1, 5)),
+        _sell("0.5", "150.00", date(2026, 1, 10)),
+    ]
+    position = derive_position(trades)
+    assert position is not None
+    assert position.shares_held == Decimal("1.5")
+    assert position.avg_purchase_price == Decimal("107.5")
+    assert position.amount_invested == Decimal("161.25")
+
+
 def test_sequence_edit_closes_then_correctly_reopens_position() -> None:
     # buy 10 (day1), sell 10 (day10) closes, buy 5 (day20) reopens.
     # Simulate editing the reopening buy's price only.

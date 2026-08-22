@@ -50,9 +50,9 @@ export function fmtVolume(n) {
   return (n / 1_000_000).toFixed(1) + "M";
 }
 
-/** @param {number} n @returns {string} "1,234" (comma grouped integer) */
+/** @param {number} n @returns {string} "1,234" or "1.25" (comma grouped, up to 6 decimals, no trailing zeros) */
 export function fmtShares(n) {
-  return n.toLocaleString("en-US");
+  return n.toLocaleString("en-US", { maximumFractionDigits: 6 });
 }
 
 /** @param {number} n @returns {string} nearest whole number, e.g. "55" */

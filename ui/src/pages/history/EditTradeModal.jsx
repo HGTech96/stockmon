@@ -86,8 +86,8 @@ export function EditTradeModal({ trade, onClose }) {
                   id="edit-trade-shares"
                   type="number"
                   className={`num ${fieldClass}`}
-                  min="1"
-                  step="1"
+                  min="0.000001"
+                  step="any"
                   required
                   value={shares}
                   onChange={(e) => setShares(e.target.value)}
