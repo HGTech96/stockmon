@@ -10,6 +10,7 @@ Personal stock monitoring for small, deliberate buy/sell decisions.
 - [How The App Thinks](#how-the-app-thinks)
 - [Bare Metal Start](#bare-metal-start)
 - [Everyday Development](#everyday-development)
+- [Utility Scripts](#utility-scripts)
 - [Environment Variables](#environment-variables)
 - [Testing Notes](#testing-notes)
 - [Product Boundaries](#product-boundaries)
@@ -279,6 +280,59 @@ npm run lint
 
 The frontend keeps calculations out of React components. Sorting, suggestion
 logic, checklist counts, warning decisions, and position math come from the API.
+
+## Utility Scripts
+
+All scripts live in `api/scripts/` and are invoked directly (no `argparse`,
+no console-script entries) with `poetry run python scripts/<name>.py` from
+the `api/` directory. They talk to `DATABASE_URL` from `api/.env`, same as
+the running API.
+
+### `seed_watchlist.py`
+
+Inserts the hardcoded watchlist tickers into the `stocks` table. Idempotent —
+already-present tickers are skipped and reported separately from newly added
+ones.
+
+```bash
+cd api
+poetry run python scripts/seed_watchlist.py
+```
+
+### `reset_to_initial_state.py`
+
+Wipes all `trades` and `cash_events` rows, clearing every position, the trade
+history, and the cash balance. Stocks and price history are left untouched.
+Positions and portfolio are derived from the trades table, so deleting trades
+is sufficient — there's no separate positions table to reset.
+
+```bash
+cd api
+poetry run python scripts/reset_to_initial_state.py
+```
+
+### `import_history.py`
+
+Bulk-loads a chronologically ordered CSV of past deposits, withdrawals,
+buys, and sells into an already-populated database (a top-up, not a fresh
+seed). Every row is replayed through the same sequence-validation the live
+API uses (share-oversell, cash-oversell, same-day money-in-before-out), and
+duplicate rows — exact matches on all six fields, against either the
+existing database or an earlier row in the same file — are rejected. The
+import is all-or-nothing: any failure aborts the whole file before anything
+is written, and the error names the offending line number.
+
+```bash
+cd api
+poetry run python scripts/import_history.py path/to/history.csv
+```
+
+CSV columns: `date,type,ticker,shares,price,amount`, with `date` in ISO
+`YYYY-MM-DD` and `type` one of `deposit`, `withdraw`, `buy`, `sell`.
+`shares`/`price` apply to `buy`/`sell`; `amount` applies to
+`deposit`/`withdraw`; leave the rest blank. See
+[the phase plan](docs/planning/phase-10b-csv-importer.md) for the full
+design.
 
 ## Environment Variables
 

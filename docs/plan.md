@@ -105,9 +105,9 @@ Do not start a phase before the previous one is done and committed.
 - [x] Tests: fractional buy draws exact cash; partial fractional sell
 - [x] Contract version bump (v1.6, see docs/planning/phase-10a-fractional-shares.md)
 ### 10b CSV history importer
-- [ ] scripts/import_history.py — one ordered CSV (date,type,ticker,shares,price,amount)
-- [ ] Replays every row through existing core sequence-validation (reuse, don't bypass)
-- [ ] Runs against an already-populated DB (top-up)
-- [ ] Duplicate = exact match on all six fields vs DB → abort whole import, named row
-- [ ] Atomic: any validation failure OR duplicate → nothing written, error names the row
-- [ ] Fractional shares supported (10a first)
+- [x] scripts/import_history.py — one ordered CSV (date,type,ticker,shares,price,amount)
+- [x] Replays every row through existing core sequence-validation (reuse, don't bypass)
+- [x] Runs against an already-populated DB (top-up)
+- [x] Duplicate = exact match on all six fields vs DB (and within the same CSV) → abort whole import, named row
+- [x] Atomic: any validation failure OR duplicate → nothing written, error names the row
+- [x] Fractional shares supported (10a first)
