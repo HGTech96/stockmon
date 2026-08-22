@@ -75,6 +75,7 @@
  * @typedef {Object} DashboardResponse
  * @property {Meta} meta
  * @property {Summary|null} summary
+ * @property {Money|null} money
  * @property {DashboardStock[]} stocks
  */
 
@@ -173,6 +174,7 @@
  * @property {Meta} meta
  * @property {boolean} hasTrades
  * @property {Summary|null} summary
+ * @property {Money|null} money
  * @property {PortfolioPosition[]} positions
  * @property {string[]} watchlist
  */
@@ -253,6 +255,27 @@
  * @typedef {Object} Settings
  * @property {number} defaultProfitTargetDollars
  * @property {Object<string, number>} perPositionTargets
+ */
+
+/**
+ * @typedef {Object} CashEventRequest
+ * @property {"deposit"|"withdraw"} type
+ * @property {number} amountUsd
+ * @property {string} date - YYYY-MM-DD
+ */
+
+/**
+ * @typedef {Object} CashEvent
+ * @property {number} id
+ * @property {"deposit"|"withdraw"} type
+ * @property {number} amountUsd
+ * @property {string} date
+ */
+
+/**
+ * @typedef {Object} CashEventResponse
+ * @property {CashEvent} event
+ * @property {number} cashAvailable
  */
 
 /**

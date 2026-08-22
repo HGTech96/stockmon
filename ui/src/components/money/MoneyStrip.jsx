@@ -4,19 +4,19 @@ import { MoneyCluster } from "./MoneyCluster";
 import { MoneyTile } from "./MoneyTile";
 
 /**
- * @param {{ money: import('../../api/types').Money }} props
+ * @param {{ money: import('../../api/types').Money, onDeposit: () => void, onWithdraw: () => void }} props
  * Second summary strip, mounted below the existing 3-card SummaryStrip:
  * Cash | Realized | Unrealized clusters for the six money-block figures
  * (contract v1.5). The Unrealized cluster's tiles are tinted (`live`) --
  * confirmed in the phase 9b design review over dot+caption alone.
  */
-export function MoneyStrip({ money }) {
+export function MoneyStrip({ money, onDeposit, onWithdraw }) {
   const depositWithdrawActions = (
     <div className="flex gap-1.5">
-      <Button variant="outline" size="icon-sm" aria-label="Deposit" className="text-base leading-none font-bold">
+      <Button variant="outline" size="icon-sm" aria-label="Deposit" className="text-base leading-none font-bold" onClick={onDeposit}>
         +
       </Button>
-      <Button variant="outline" size="icon-sm" aria-label="Withdraw" className="text-base leading-none font-bold">
+      <Button variant="outline" size="icon-sm" aria-label="Withdraw" className="text-base leading-none font-bold" onClick={onWithdraw}>
         −
       </Button>
     </div>

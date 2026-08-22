@@ -1,12 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getStocks } from "../../api/stocks";
 import { SummaryStrip } from "../../components/summary/SummaryStrip";
+import { MoneyStrip } from "../../components/money/MoneyStrip";
+import { EmptyMoneyStrip } from "../../components/money/EmptyMoneyStrip";
+import { CashModal } from "../../components/money/CashModal";
 import { StockTable } from "./StockTable";
 
 export function DashboardPage() {
   const { setMeta } = useOutletContext();
+  const [cashModalType, setCashModalType] = useState(null);
   const { data, error, isPending } = useQuery({
     queryKey: ["stocks"],
     queryFn: getStocks,
@@ -33,7 +37,14 @@ export function DashboardPage() {
         </div>
       </div>
       {data.summary && <SummaryStrip summary={data.summary} />}
+      {data.money ? (
+        <MoneyStrip money={data.money} onDeposit={() => setCashModalType("deposit")} onWithdraw={() => setCashModalType("withdraw")} />
+      ) : (
+        <EmptyMoneyStrip onDeposit={() => setCashModalType("deposit")} />
+      )}
       <StockTable stocks={data.stocks} />
+
+      <CashModal type={cashModalType} cashAvailable={data.money?.cashAvailable} onClose={() => setCashModalType(null)} />
     </div>
   );
 }

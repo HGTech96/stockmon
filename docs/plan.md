@@ -88,3 +88,9 @@ Do not start a phase before the previous one is done and committed.
       full-cell live tint, +/− icon buttons) and live-tint treatment
       decided (dot + caption + tint) — see phase-9b-design.md
 ### 9d Finalization (wire approved design to real endpoints) — after 9c
+- [x] MoneyStrip wired to the live `money` block on dashboard + portfolio;
+      EmptyMoneyStrip bootstrap state when `money` is null (fresh DB);
+      Deposit/Withdraw via `CashModal` (POST /api/cash), inline 422s;
+      insufficient-cash buy 422 verified through TradeModal's existing
+      error display; `/preview/cash` removed
+      (see docs/planning/phase-9d-finalize.md)

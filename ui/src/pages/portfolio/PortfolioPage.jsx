@@ -5,6 +5,9 @@ import { Plus } from "lucide-react";
 import { getPortfolio } from "../../api/portfolio";
 import { getStocks } from "../../api/stocks";
 import { SummaryStrip } from "../../components/summary/SummaryStrip";
+import { MoneyStrip } from "../../components/money/MoneyStrip";
+import { EmptyMoneyStrip } from "../../components/money/EmptyMoneyStrip";
+import { CashModal } from "../../components/money/CashModal";
 import { PositionsTable } from "./PositionsTable";
 import { EmptyState } from "./EmptyState";
 import { TradeModal } from "./TradeModal";
@@ -12,6 +15,7 @@ import { TradeModal } from "./TradeModal";
 export function PortfolioPage() {
   const { setMeta } = useOutletContext();
   const [modalOpen, setModalOpen] = useState(false);
+  const [cashModalType, setCashModalType] = useState(null);
 
   const { data, error, isPending } = useQuery({
     queryKey: ["portfolio"],
@@ -50,9 +54,15 @@ export function PortfolioPage() {
         </div>
       </div>
 
+      {data.summary && <SummaryStrip summary={data.summary} />}
+      {data.money ? (
+        <MoneyStrip money={data.money} onDeposit={() => setCashModalType("deposit")} onWithdraw={() => setCashModalType("withdraw")} />
+      ) : (
+        <EmptyMoneyStrip onDeposit={() => setCashModalType("deposit")} />
+      )}
+
       {data.hasTrades ? (
         <>
-          <SummaryStrip summary={data.summary} />
           <div className="mb-3.5 flex justify-end">
             <button
               type="button"
@@ -76,6 +86,8 @@ export function PortfolioPage() {
         stocksByTicker={stocksByTicker}
         ownedTickers={ownedTickers}
       />
+
+      <CashModal type={cashModalType} cashAvailable={data.money?.cashAvailable} onClose={() => setCashModalType(null)} />
     </div>
   );
 }
