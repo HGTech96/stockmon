@@ -15,6 +15,17 @@ export function fmtMoneySigned(n) {
 }
 
 /**
+ * @param {number} magnitude - non-negative loss/lost figure as sent by the
+ *   API (e.g. `realizedLost`, `unrealizedLossOpen` are documented as
+ *   "positive number" magnitudes, not signed deltas)
+ * @returns {string} "-$12.00" when > 0, "$0.00" when exactly 0 -- never a
+ *   "-$0.00" or a leading "+"
+ */
+export function fmtLossMagnitude(magnitude) {
+  return magnitude > 0 ? "-" + fmtMoney(magnitude) : fmtMoney(magnitude);
+}
+
+/**
  * @param {number} remainingDollars
  * @param {boolean} reached
  * @returns {string} "Goal reached" when reached, else "$X to go"

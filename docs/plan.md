@@ -81,5 +81,10 @@ Do not start a phase before the previous one is done and committed.
 - [x] money block on dashboard + portfolio summaries
 - [x] Buy rejected (422) on insufficient cash
 ### 9b Design (static mockup, dummy numbers) — after 9a
+- [x] MoneyTile/MoneyCluster/MoneyStrip components + /preview/cash route
+      (see docs/planning/phase-9b-design.md)
 ### 9c Design review — after 9b
+- [x] Layout/placement feedback applied (cluster bottom-edge alignment,
+      full-cell live tint, +/− icon buttons) and live-tint treatment
+      decided (dot + caption + tint) — see phase-9b-design.md
 ### 9d Finalization (wire approved design to real endpoints) — after 9c

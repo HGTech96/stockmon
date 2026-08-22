@@ -44,6 +44,16 @@
  */
 
 /**
+ * @typedef {Object} Money
+ * @property {number} cashAvailable
+ * @property {number} netDeposited
+ * @property {number} realizedEarned
+ * @property {number} realizedLost - positive magnitude, not signed
+ * @property {number} unrealizedGainOpen
+ * @property {number} unrealizedLossOpen - positive magnitude, not signed
+ */
+
+/**
  * @typedef {Object} DashboardPosition
  * @property {number} profitLoss
  * @property {number} profitLossPct
