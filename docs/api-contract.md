@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.6
+# stockmon — API Contract v1.7
 
 Base URL: `http://localhost:8000/api`
 
@@ -478,6 +478,43 @@ DELETE /api/cash/{id}
   the sequence: `{ "error": "Insufficient cash — record a deposit first." }`
 - Response unchanged otherwise; a successful buy's effect on cash is reflected
   in the next GET.
+## Add stock to watchlist (v1.7)
+
+Append to docs/api-contract.md. New watchlist-management endpoint. No
+existing endpoint shapes change. Add-only — no removal/archive endpoint.
+
+### POST /api/stocks
+
+Request:
+
+```json
+{ "ticker": "PLTR" }
+```
+
+- Ticker is uppercased server-side before lookup/storage.
+
+Response `201`:
+
+```json
+{ "ticker": "PLTR", "companyName": "Palantir Technologies Inc.", "historyFetched": true }
+```
+
+- Validates the ticker resolves via `MarketDataProvider` (company-name
+  lookup) — an empty/missing name counts as unresolved, same as a raised
+  error. On success, stores the stock and immediately fetches its price
+  history (the same per-ticker fetch `POST /api/refresh` uses) so it has
+  data right away.
+- `historyFetched`: `false` when the name resolved but the immediate history
+  fetch failed (e.g. a very new listing with no bars yet) — the stock is
+  still added and shows `status: "insufficient_history"` on the dashboard
+  until the next refresh. `true` when history came back immediately. The UI
+  uses this to word the success toast honestly rather than implying the row
+  has data when it doesn't yet.
+- `422 { "error": "Unknown ticker — check the symbol." }` — ticker doesn't
+  resolve via the provider (raised, or resolved with no usable name).
+- `409 { "error": "<TICKER> is already on your watchlist." }` — ticker
+  already exists.
+
 ---
 
 ## Changelog
@@ -501,3 +538,6 @@ DELETE /api/cash/{id}
   `trades.shares` widened to `Numeric(12,6)`. No endpoint or field shape
   changes — `shares` was always a raw number on the wire, just previously
   whole-number in practice.
+
+- v1.7: added POST /api/stocks (add a ticker to the watchlist). No changes
+  to existing endpoint shapes.

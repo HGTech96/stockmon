@@ -9,7 +9,7 @@ from fastapi.responses import JSONResponse
 from stockmon.api.routes import cash, portfolio, refresh, settings, stocks, trades
 from stockmon.config import settings as app_settings
 from stockmon.services.cash_service import CashNotFoundError, CashValidationError
-from stockmon.services.stock_service import StockNotFoundError
+from stockmon.services.stock_service import StockAlreadyOnWatchlistError, StockNotFoundError, UnknownTickerError
 from stockmon.services.trade_service import TradeNotFoundError, TradeValidationError
 
 app = FastAPI(title="stockmon")
@@ -46,6 +46,16 @@ def handle_trade_validation_error(request: Request, exc: TradeValidationError) -
 @app.exception_handler(StockNotFoundError)
 def handle_stock_not_found_error(request: Request, exc: StockNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"error": str(exc)})
+
+
+@app.exception_handler(UnknownTickerError)
+def handle_unknown_ticker_error(request: Request, exc: UnknownTickerError) -> JSONResponse:
+    return JSONResponse(status_code=422, content={"error": str(exc)})
+
+
+@app.exception_handler(StockAlreadyOnWatchlistError)
+def handle_stock_already_on_watchlist_error(request: Request, exc: StockAlreadyOnWatchlistError) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"error": str(exc)})
 
 
 @app.exception_handler(TradeNotFoundError)

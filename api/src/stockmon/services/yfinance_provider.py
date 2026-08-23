@@ -40,3 +40,14 @@ class YFinanceProvider(MarketDataProvider):
             raise MarketDataError(f"no current price available for {ticker}")
 
         return Quote(price=Decimal(str(last_price)), as_of=datetime.now().astimezone())
+
+    def fetch_company_name(self, ticker: str) -> str:
+        try:
+            info = yf.Ticker(ticker).info
+        except Exception as exc:
+            raise MarketDataError(str(exc)) from exc
+
+        name = (info.get("longName") or info.get("shortName") or "").strip()
+        if not name:
+            raise MarketDataError(f"no company name available for {ticker}")
+        return name

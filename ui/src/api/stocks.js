@@ -12,3 +12,11 @@ export function getStocks() {
 export function getStockDetail(ticker) {
   return request(`/stocks/${ticker}`);
 }
+
+/**
+ * @param {string} ticker
+ * @returns {Promise<import('./types').AddStockResponse>}
+ */
+export function addStock(ticker) {
+  return request("/stocks", { method: "POST", body: JSON.stringify({ ticker }) });
+}

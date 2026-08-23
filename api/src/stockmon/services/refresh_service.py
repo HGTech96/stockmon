@@ -23,6 +23,22 @@ class RefreshResult:
     data_as_of: datetime
 
 
+def refresh_stock(
+    db: Session, provider: MarketDataProvider, stock: Stock, days: int = DEFAULT_HISTORY_DAYS
+) -> RefreshFailure | None:
+    """One ticker's fetch+upsert+commit, success=None / failure=RefreshFailure.
+    Used by refresh_all_stocks (looped) and add_stock_to_watchlist (single
+    call) so both paths share one implementation."""
+    try:
+        bars = provider.fetch_daily_history(stock.ticker, days)
+        upsert_daily_prices(db, stock.id, bars)
+        db.commit()
+        return None
+    except MarketDataError as exc:
+        db.rollback()
+        return RefreshFailure(ticker=stock.ticker, error=str(exc))
+
+
 def refresh_all_stocks(
     db: Session, provider: MarketDataProvider, days: int = DEFAULT_HISTORY_DAYS
 ) -> RefreshResult:
@@ -30,14 +46,11 @@ def refresh_all_stocks(
     failed: list[RefreshFailure] = []
 
     for stock in db.query(Stock).all():
-        try:
-            bars = provider.fetch_daily_history(stock.ticker, days)
-            upsert_daily_prices(db, stock.id, bars)
-            db.commit()
+        failure = refresh_stock(db, provider, stock, days)
+        if failure is None:
             refreshed.append(stock.ticker)
-        except MarketDataError as exc:
-            db.rollback()
-            failed.append(RefreshFailure(ticker=stock.ticker, error=str(exc)))
+        else:
+            failed.append(failure)
 
     return RefreshResult(
         refreshed=refreshed,

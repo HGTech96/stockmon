@@ -283,4 +283,13 @@
  * @property {string} error
  */
 
+/**
+ * @typedef {Object} AddStockResponse
+ * @property {string} ticker
+ * @property {string} companyName
+ * @property {boolean} historyFetched - false when the ticker resolved but
+ *   its price history couldn't be fetched immediately (rare); the row
+ *   shows "insufficient_history" until the next refresh.
+ */
+
 export {};

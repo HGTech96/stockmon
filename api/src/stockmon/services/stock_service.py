@@ -11,9 +11,10 @@ from stockmon.core.indicators import (
     calculate_indicators,
     calculate_price_snapshot,
 )
-from stockmon.core.market_data import DailyBar
+from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider
 from stockmon.core.position import Position, PositionValue, TradeEvent, derive_position, value_position
 from stockmon.db.models import DailyPrice, Stock, Trade
+from stockmon.services.refresh_service import refresh_stock
 
 Status = Literal["ok", "insufficient_history"]
 
@@ -22,6 +23,24 @@ class StockNotFoundError(Exception):
     def __init__(self, ticker: str) -> None:
         self.ticker = ticker
         super().__init__(f"'{ticker}' is not on the watchlist")
+
+
+class UnknownTickerError(Exception):
+    def __init__(self, ticker: str) -> None:
+        self.ticker = ticker
+        super().__init__("Unknown ticker — check the symbol.")
+
+
+class StockAlreadyOnWatchlistError(Exception):
+    def __init__(self, ticker: str) -> None:
+        self.ticker = ticker
+        super().__init__(f"{ticker} is already on your watchlist.")
+
+
+@dataclass(frozen=True)
+class AddStockResult:
+    stock: Stock
+    history_fetched: bool
 
 
 @dataclass(frozen=True)
@@ -126,3 +145,33 @@ def evaluate_stock_snapshot(db: Session, stock: Stock, target_dollars: Decimal) 
         suggestion=suggestion,
         warning=warning,
     )
+
+
+def add_stock_to_watchlist(db: Session, provider: MarketDataProvider, ticker: str) -> AddStockResult:
+    """Two independent failure modes:
+    - name doesn't resolve (raises, or resolves blank) -> reject, nothing
+      stored (UnknownTickerError -> 422).
+    - name resolves but history fetch fails -> still add the stock; it's a
+      real ticker, the history gap is transient and self-heals on the next
+      refresh. Caller uses `history_fetched` to word the success message
+      honestly instead of implying the row has data already."""
+    ticker = ticker.strip().upper()
+    if db.query(Stock).filter(Stock.ticker == ticker).first() is not None:
+        raise StockAlreadyOnWatchlistError(ticker)
+
+    try:
+        company_name = provider.fetch_company_name(ticker).strip()
+    except MarketDataError as exc:
+        raise UnknownTickerError(ticker) from exc
+    if not company_name:
+        # Defense in depth: enforce "blank name = unresolved" here too, not
+        # just inside YFinanceProvider, so the rule holds for any provider.
+        raise UnknownTickerError(ticker)
+
+    stock = Stock(ticker=ticker, company_name=company_name)
+    db.add(stock)
+    db.commit()
+    db.refresh(stock)
+
+    failure = refresh_stock(db, provider, stock)
+    return AddStockResult(stock=stock, history_fetched=failure is None)

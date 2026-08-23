@@ -1,7 +1,10 @@
 from datetime import date, timedelta
 from decimal import Decimal
 
+from stockmon.api.dependencies import get_market_data_provider
+from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, Quote
 from stockmon.db.models import Trade
+from stockmon.main import app
 from tests.conftest import make_daily_prices, make_stock
 
 DASHBOARD_META_KEYS = {"dataAsOf", "isStale", "staleMessage"}
@@ -162,3 +165,76 @@ def test_detail_unknown_ticker_is_404(client) -> None:
     r = client.get("/api/stocks/ZZZZ")
     assert r.status_code == 404
     assert set(r.json().keys()) == {"error"}
+
+
+class FakeProvider(MarketDataProvider):
+    def __init__(self, company_name: str | None, bars: list[DailyBar] | None = None):
+        self._company_name = company_name
+        self._bars = bars
+
+    def fetch_daily_history(self, ticker: str, days: int) -> list[DailyBar]:
+        if self._bars is None:
+            raise MarketDataError(f"no price history returned for {ticker}")
+        return self._bars
+
+    def fetch_current_quote(self, ticker: str) -> Quote:
+        raise NotImplementedError
+
+    def fetch_company_name(self, ticker: str) -> str:
+        if self._company_name is None:
+            raise MarketDataError(f"no company name available for {ticker}")
+        return self._company_name
+
+
+def _bar() -> DailyBar:
+    return DailyBar(
+        date=date(2026, 8, 18),
+        open=Decimal("10.00"),
+        high=Decimal("11.00"),
+        low=Decimal("9.00"),
+        close=Decimal("10.50"),
+        volume=1000,
+    )
+
+
+def _override_provider(provider: MarketDataProvider) -> None:
+    app.dependency_overrides[get_market_data_provider] = lambda: provider
+
+
+def test_add_stock_valid_ticker_returns_201(client) -> None:
+    _override_provider(FakeProvider(company_name="Palantir Technologies Inc.", bars=[_bar()]))
+    try:
+        r = client.post("/api/stocks", json={"ticker": "pltr"})
+    finally:
+        del app.dependency_overrides[get_market_data_provider]
+
+    assert r.status_code == 201
+    body = r.json()
+    assert set(body.keys()) == {"ticker", "companyName", "historyFetched"}
+    assert body == {"ticker": "PLTR", "companyName": "Palantir Technologies Inc.", "historyFetched": True}
+
+    dashboard = client.get("/api/stocks").json()
+    assert any(row["ticker"] == "PLTR" for row in dashboard["stocks"])
+
+
+def test_add_stock_unknown_ticker_is_422(client) -> None:
+    _override_provider(FakeProvider(company_name=None))
+    try:
+        r = client.post("/api/stocks", json={"ticker": "ZZZZ"})
+    finally:
+        del app.dependency_overrides[get_market_data_provider]
+
+    assert r.status_code == 422
+    assert r.json() == {"error": "Unknown ticker — check the symbol."}
+
+
+def test_add_stock_already_on_watchlist_is_409(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    _override_provider(FakeProvider(company_name="Apple Inc.", bars=[_bar()]))
+    try:
+        r = client.post("/api/stocks", json={"ticker": "AAPL"})
+    finally:
+        del app.dependency_overrides[get_market_data_provider]
+
+    assert r.status_code == 409
+    assert r.json() == {"error": "AAPL is already on your watchlist."}

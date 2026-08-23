@@ -1,18 +1,14 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from stockmon.api.dependencies import get_market_data_provider
 from stockmon.api.schemas.refresh import RefreshFailureItem, RefreshResponse
 from stockmon.core.market_data import MarketDataProvider
 from stockmon.db.session import get_db
 from stockmon.services.freshness_service import record_refresh_result
 from stockmon.services.refresh_service import refresh_all_stocks
-from stockmon.services.yfinance_provider import YFinanceProvider
 
 router = APIRouter()
-
-
-def get_market_data_provider() -> MarketDataProvider:
-    return YFinanceProvider()
 
 
 @router.post("/api/refresh", response_model=RefreshResponse)

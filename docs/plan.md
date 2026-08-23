@@ -125,7 +125,8 @@ Do not start a phase before the previous one is done and committed.
 - [ ] Remove the MoneyStrip from the Dashboard page (keep on Portfolio)
 - [ ] API unchanged (money block still returned; dashboard just doesn't render it)
 ### 11b Add stock to watchlist
-- [ ] Backend: POST /api/stocks — validate ticker via provider, fetch history, store
-- [ ] Contract: new endpoint (v-bump); 422 unknown ticker, 409 already on watchlist
-- [ ] UI: "Add" button beside "Refresh now" above the dashboard table; modal with
+- [x] Backend: POST /api/stocks — validate ticker via provider, fetch history, store
+- [x] Contract: new endpoint (v1.7); 422 unknown ticker, 409 already on watchlist
+- [x] UI: "Add" button beside "Refresh now" above the dashboard table; modal with
       ticker input, inline 422 on unknown ticker; invalidate stocks query on success
+      (see docs/planning/phase-11b-add-stock.md)

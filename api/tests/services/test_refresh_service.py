@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 
 from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, Quote
 from stockmon.db.models import Stock
-from stockmon.services.refresh_service import refresh_all_stocks
+from stockmon.services.refresh_service import refresh_all_stocks, refresh_stock
 
 
 class FakeProvider(MarketDataProvider):
@@ -18,6 +18,9 @@ class FakeProvider(MarketDataProvider):
         return self._history_by_ticker[ticker]
 
     def fetch_current_quote(self, ticker: str) -> Quote:
+        raise NotImplementedError
+
+    def fetch_company_name(self, ticker: str) -> str:
         raise NotImplementedError
 
 
@@ -54,4 +57,32 @@ def test_refresh_all_stocks_partial_failure() -> None:
 
     mock_upsert.assert_called_once_with(db, ok_stock.id, provider.fetch_daily_history("AAPL", 60))
     db.commit.assert_called_once()
+    db.rollback.assert_called_once()
+
+
+def test_refresh_stock_success_returns_none_and_commits() -> None:
+    stock = Stock(id=1, ticker="AAPL", company_name="Apple Inc.")
+    db = MagicMock()
+    provider = FakeProvider(history_by_ticker={"AAPL": [_make_bar(date(2026, 8, 18))]}, failing_tickers=set())
+
+    with patch("stockmon.services.refresh_service.upsert_daily_prices") as mock_upsert:
+        failure = refresh_stock(db, provider, stock, days=60)
+
+    assert failure is None
+    mock_upsert.assert_called_once_with(db, stock.id, provider.fetch_daily_history("AAPL", 60))
+    db.commit.assert_called_once()
+    db.rollback.assert_not_called()
+
+
+def test_refresh_stock_failure_returns_failure_and_rolls_back() -> None:
+    stock = Stock(id=2, ticker="KO", company_name="Coca-Cola Co.")
+    db = MagicMock()
+    provider = FakeProvider(history_by_ticker={}, failing_tickers={"KO"})
+
+    failure = refresh_stock(db, provider, stock, days=60)
+
+    assert failure is not None
+    assert failure.ticker == "KO"
+    assert failure.error == "download timeout for KO"
+    db.commit.assert_not_called()
     db.rollback.assert_called_once()
