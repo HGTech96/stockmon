@@ -111,3 +111,21 @@ Do not start a phase before the previous one is done and committed.
 - [x] Duplicate = exact match on all six fields vs DB (and within the same CSV) → abort whole import, named row
 - [x] Atomic: any validation failure OR duplicate → nothing written, error names the row
 - [x] Fractional shares supported (10a first)
+### 10c Dashboard refresh button
+- [x] "Refresh now" button directly above the dashboard stock table
+- [x] Calls existing POST /api/refresh; invalidates stocks/portfolio/cash queries
+- [x] In-flight disabled/loading state (refresh takes seconds)
+- [x] Surface `failed` tickers from the response as an inline notice
+- [x] If a refresh button already exists (Phase 6 shell), MOVE it here, don't duplicate
+      (none existed — Phase 6's auto-refetch interval had no user-facing
+      button; this is net-new, see docs/planning/phase-10c-refresh-button.md)
+
+## Phase 11 — Adjustments
+### 11a Money widgets: Portfolio only
+- [ ] Remove the MoneyStrip from the Dashboard page (keep on Portfolio)
+- [ ] API unchanged (money block still returned; dashboard just doesn't render it)
+### 11b Add stock to watchlist
+- [ ] Backend: POST /api/stocks — validate ticker via provider, fetch history, store
+- [ ] Contract: new endpoint (v-bump); 422 unknown ticker, 409 already on watchlist
+- [ ] UI: "Add" button beside "Refresh now" above the dashboard table; modal with
+      ticker input, inline 422 on unknown ticker; invalidate stocks query on success

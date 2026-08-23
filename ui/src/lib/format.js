@@ -89,6 +89,19 @@ export function fmtOrDash(value, formatter) {
   return value == null ? "–" : formatter(value);
 }
 
+/**
+ * @param {import('../api/types').RefreshResponse} refreshResult
+ * @returns {string|null} "5 updated · AMZN, KO failed" -- null when nothing
+ * failed. Names the failed tickers rather than just a count, so a stale
+ * price is identifiable at a glance instead of forcing a hunt through the
+ * table.
+ */
+export function fmtRefreshSummary(refreshResult) {
+  if (refreshResult.failed.length === 0) return null;
+  const failedTickers = refreshResult.failed.map((f) => f.ticker).join(", ");
+  return `${refreshResult.refreshed.length} updated · ${failedTickers} failed`;
+}
+
 /** @param {string} isoDate - "YYYY-MM-DD", parsed as local (not UTC midnight) so chart labels don't shift a day off */
 function parseIsoDate(isoDate) {
   const [year, month, day] = isoDate.split("-").map(Number);

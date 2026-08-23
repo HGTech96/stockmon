@@ -6,6 +6,7 @@ import { SummaryStrip } from "../../components/summary/SummaryStrip";
 import { MoneyStrip } from "../../components/money/MoneyStrip";
 import { EmptyMoneyStrip } from "../../components/money/EmptyMoneyStrip";
 import { CashModal } from "../../components/money/CashModal";
+import { RefreshButton } from "./RefreshButton";
 import { StockTable } from "./StockTable";
 
 export function DashboardPage() {
@@ -42,6 +43,9 @@ export function DashboardPage() {
       ) : (
         <EmptyMoneyStrip onDeposit={() => setCashModalType("deposit")} />
       )}
+      <div className="mb-3 flex justify-end">
+        <RefreshButton />
+      </div>
       <StockTable stocks={data.stocks} />
 
       <CashModal type={cashModalType} cashAvailable={data.money?.cashAvailable} onClose={() => setCashModalType(null)} />
