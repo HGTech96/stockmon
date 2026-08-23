@@ -3,15 +3,17 @@ import { useOutletContext } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getStocks } from "../../api/stocks";
 import { SummaryStrip } from "../../components/summary/SummaryStrip";
-import { MoneyStrip } from "../../components/money/MoneyStrip";
-import { EmptyMoneyStrip } from "../../components/money/EmptyMoneyStrip";
-import { CashModal } from "../../components/money/CashModal";
+import { Toast } from "../../components/toast/Toast";
+import { useToast } from "../../components/toast/useToast";
+import { AddStockButton } from "./AddStockButton";
+import { AddStockModal } from "./AddStockModal";
 import { RefreshButton } from "./RefreshButton";
 import { StockTable } from "./StockTable";
 
 export function DashboardPage() {
   const { setMeta } = useOutletContext();
-  const [cashModalType, setCashModalType] = useState(null);
+  const [addStockOpen, setAddStockOpen] = useState(false);
+  const toast = useToast();
   const { data, error, isPending } = useQuery({
     queryKey: ["stocks"],
     queryFn: getStocks,
@@ -38,17 +40,14 @@ export function DashboardPage() {
         </div>
       </div>
       {data.summary && <SummaryStrip summary={data.summary} />}
-      {data.money ? (
-        <MoneyStrip money={data.money} onDeposit={() => setCashModalType("deposit")} onWithdraw={() => setCashModalType("withdraw")} />
-      ) : (
-        <EmptyMoneyStrip onDeposit={() => setCashModalType("deposit")} />
-      )}
-      <div className="mb-3 flex justify-end">
+      <div className="mb-3 flex items-start justify-end gap-2.5">
+        <AddStockButton onClick={() => setAddStockOpen(true)} />
         <RefreshButton />
       </div>
       <StockTable stocks={data.stocks} />
 
-      <CashModal type={cashModalType} cashAvailable={data.money?.cashAvailable} onClose={() => setCashModalType(null)} />
+      <AddStockModal open={addStockOpen} onClose={() => setAddStockOpen(false)} showToast={toast.show} />
+      <Toast message={toast.message} tone={toast.tone} />
     </div>
   );
 }
