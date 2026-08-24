@@ -1,9 +1,17 @@
+import warnings
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import yfinance as yf
+from pandas.errors import Pandas4Warning
 
 from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, Quote
+
+# yfinance calls a pandas API deprecated in the pandas version this project
+# pins (harmless, yfinance's issue to fix, not ours) on every history fetch.
+# yfinance's own __init__ re-enables DeprecationWarning for its module, so
+# this filter must be added after `import yfinance` to take precedence.
+warnings.filterwarnings("ignore", category=Pandas4Warning)
 
 
 class YFinanceProvider(MarketDataProvider):
