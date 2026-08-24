@@ -87,10 +87,6 @@
   --color-neutral-border: #D8DCE1;
   --color-bad: #B91C1C;
 
-  /* Header logo mark background -- not from design/reference, matches the
-     logo SVG's own stroke color. */
-  --color-logo-bg: #705824;
-
   --radius-DEFAULT: 10px;
   --radius-pill: 999px;
 

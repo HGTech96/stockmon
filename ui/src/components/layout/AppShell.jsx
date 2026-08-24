@@ -18,8 +18,8 @@ export function AppShell() {
   return (
     <div className="min-h-screen bg-bg">
       <header className="sticky top-0 z-40 flex h-[60px] items-stretch gap-8 border-b border-border-strong bg-bg px-7">
-        <div className="-mx-7 flex items-center whitespace-nowrap bg-logo-bg px-7">
-          <img src="/Group%202.svg" alt="Stock Helper" className="h-8 w-auto" />
+        <div className="my-1.5 flex items-center whitespace-nowrap">
+          <img src="/full-logo.svg" alt="Stock Helper" className="h-11 w-auto" />
         </div>
         <NavTabs />
         <div className="flex items-center gap-2.5 whitespace-nowrap">
