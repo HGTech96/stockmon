@@ -8,6 +8,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     UniqueConstraint,
@@ -103,6 +104,30 @@ class CashEvent(Base):
     amount_usd: Mapped[Decimal] = mapped_column(Numeric(12, 2))
     event_date: Mapped[date] = mapped_column(Date)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class ScreenerResult(Base):
+    """Latest screener run only -- scripts/run_screener.py truncates and
+    rewrites this table in one transaction on every run. Not related to
+    Stock: the screener universe (screener_stocks.txt) is a separate,
+    unstored ticker list, never the tracked watchlist."""
+
+    __tablename__ = "screener_results"
+    __table_args__ = (UniqueConstraint("ticker", name="uq_screener_result_ticker"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    ticker: Mapped[str] = mapped_column(String(10), index=True)
+    company_name: Mapped[str] = mapped_column(String(200))
+    current_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 4))
+    change_1d_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 4))
+    status: Mapped[str] = mapped_column(String(20))
+    suggestion: Mapped[str | None] = mapped_column(String(4))
+    conditions_met: Mapped[int | None] = mapped_column(Integer)
+    conditions_total: Mapped[int | None] = mapped_column(Integer)
+    rsi: Mapped[Decimal | None] = mapped_column(Numeric(5, 2))
+    price_vs_30d_avg_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 4))
+    sharp_move: Mapped[bool | None] = mapped_column(Boolean)
+    run_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
 class RefreshStatus(Base):

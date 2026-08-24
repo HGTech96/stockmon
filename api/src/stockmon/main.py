@@ -6,7 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from stockmon.api.routes import cash, portfolio, refresh, settings, stocks, trades
+from stockmon.api.routes import cash, portfolio, refresh, screener, settings, stocks, trades
 from stockmon.config import settings as app_settings
 from stockmon.services.cash_service import CashNotFoundError, CashValidationError
 from stockmon.services.stock_service import StockAlreadyOnWatchlistError, StockNotFoundError, UnknownTickerError
@@ -25,6 +25,7 @@ app.include_router(portfolio.router)
 app.include_router(trades.router)
 app.include_router(settings.router)
 app.include_router(cash.router)
+app.include_router(screener.router)
 
 
 @app.get("/api/health")

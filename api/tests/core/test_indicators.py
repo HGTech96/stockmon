@@ -10,6 +10,7 @@ from stockmon.core.indicators import (
     _wilder_rsi,
     calculate_indicators,
     calculate_price_snapshot,
+    price_vs_30d_avg_pct,
 )
 from stockmon.core.market_data import DailyBar
 
@@ -151,3 +152,11 @@ def test_price_snapshot_uses_last_two_bars() -> None:
     assert snapshot is not None
     assert snapshot.current_price == Decimal(99)
     assert snapshot.change_1d_pct == (Decimal(99) - Decimal(90)) / Decimal(90) * 100
+
+
+def test_price_vs_30d_avg_pct() -> None:
+    closes = [Decimal(90)] + [Decimal(100)] * 28 + [Decimal(110)]
+    bars = _bars_from_closes(closes)
+    indicators = calculate_indicators(bars)
+    expected_avg = (Decimal(90) + Decimal(100) * 28 + Decimal(110)) / Decimal(30)
+    assert price_vs_30d_avg_pct(indicators) == (Decimal(110) - expected_avg) / expected_avg * 100

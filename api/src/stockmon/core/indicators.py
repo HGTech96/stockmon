@@ -97,6 +97,11 @@ def calculate_indicators(bars: list[DailyBar]) -> Indicators:
     )
 
 
+def price_vs_30d_avg_pct(indicators: Indicators) -> Decimal:
+    """How far current_price sits from thirty_day_average, signed pct."""
+    return _pct_change(indicators.thirty_day_average, indicators.current_price)
+
+
 def _pct_change(base: Decimal, current: Decimal) -> Decimal:
     if base == 0:
         return Decimal(0)

@@ -156,16 +156,17 @@ a table and shown on a separate page. NOT the tracked watchlist — shares no da
 with the stocks/daily_prices tables. Reuses all existing core evaluation.
 
 ### 14a Backend: screener job + results
-- [ ] screener_stocks.txt (one ticker per line; user-edited, not in DB; ship an example)
-- [ ] screener_results table (latest run only): ticker, company_name,
+- [x] screener_stocks.txt (one ticker per line; user-edited, not in DB; ship an example)
+- [x] screener_results table (latest run only): ticker, company_name,
       current_price, change_1d_pct, suggestion, conditions_met, conditions_total,
       rsi, price_vs_30d_avg_pct, sharp_move, run_at
-- [ ] scripts/run_screener.py: read file; batched fetch (size ~10, 1–2s pause
+- [x] scripts/run_screener.py: read file; batched fetch (size ~10, 1–2s pause
       between batches, both tunable constants); evaluate via existing core
       (entry-only BUY/WAIT); truncate+rewrite results atomically; concise
       terminal logging; failed ticker skipped not fatal
-- [ ] GET /api/screener: latest-run rows + run_at; explicit never-run state
-- [ ] Contract amendment (v-bump) for GET /api/screener
+- [x] GET /api/screener: latest-run rows + run_at; explicit never-run state
+- [x] Contract amendment (v-bump) for GET /api/screener
+      (see docs/planning/phase-14a-screener-backend.md)
 
 ### 14b Backend: live-fetch detail endpoint
 - [ ] GET /api/screener/{ticker}/detail: live-fetch one ticker's history (not
