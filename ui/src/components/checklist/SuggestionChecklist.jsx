@@ -1,4 +1,19 @@
 import { Check, X } from "lucide-react";
+import { InfoTooltip } from "../tooltip/InfoTooltip";
+
+/**
+ * Short plain-language explanations for checklist items whose wording
+ * alone can be jargon-y to a non-finance reader. Keyed by the backend's
+ * stable machine `id` (docs/api-contract.md) -- purely educational glossary
+ * text, not a re-derivation of the suggestion logic, so it doesn't conflict
+ * with "the backend is the single source of wording" for the checklist text
+ * itself.
+ */
+const ITEM_EXPLANATIONS = {
+  rsi_low: "RSI is a 0–100 momentum score for how fast the price has moved recently — lower usually means less overbought.",
+  rsi_high: "RSI is a 0–100 momentum score for how fast the price has moved recently — higher usually means more overbought.",
+  volume_above_avg: "Volume is how many shares changed hands today. Higher-than-average volume can signal stronger interest in the move.",
+};
 
 /**
  * @param {{ suggestion: import('../../api/types').Suggestion }} props
@@ -26,7 +41,15 @@ export function SuggestionChecklist({ suggestion }) {
             >
               {item.passed ? <Check className="h-[11px] w-[11px]" strokeWidth={2.5} /> : <X className="h-[11px] w-[11px]" strokeWidth={2.5} />}
             </span>
-            <span>{item.text}</span>
+            <span>
+              {item.text}
+              {ITEM_EXPLANATIONS[item.id] && (
+                <>
+                  {" "}
+                  <InfoTooltip text={ITEM_EXPLANATIONS[item.id]} />
+                </>
+              )}
+            </span>
           </li>
         ))}
       </ul>
