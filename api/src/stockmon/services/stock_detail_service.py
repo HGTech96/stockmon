@@ -38,11 +38,11 @@ class StockDetail:
     news_links: NewsLinks
 
 
-def _news_links(stock: Stock) -> NewsLinks:
+def news_links_for_ticker(ticker: str, investor_relations_url: str | None) -> NewsLinks:
     return NewsLinks(
-        yahoo_finance=f"https://finance.yahoo.com/quote/{stock.ticker}",
-        google_finance=f"https://www.google.com/finance/quote/{stock.ticker}",
-        investor_relations=stock.investor_relations_url,
+        yahoo_finance=f"https://finance.yahoo.com/quote/{ticker}",
+        google_finance=f"https://www.google.com/finance/quote/{ticker}",
+        investor_relations=investor_relations_url,
     )
 
 
@@ -79,5 +79,5 @@ def get_stock_detail(db: Session, ticker: str) -> StockDetail:
         user_avg_purchase_price=evaluation.position.avg_purchase_price if evaluation.position else None,
         profit_target=profit_target,
         effective_target_dollars=target,
-        news_links=_news_links(stock),
+        news_links=news_links_for_ticker(stock.ticker, stock.investor_relations_url),
     )

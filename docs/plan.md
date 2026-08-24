@@ -169,12 +169,12 @@ with the stocks/daily_prices tables. Reuses all existing core evaluation.
       (see docs/planning/phase-14a-screener-backend.md)
 
 ### 14b Backend: live-fetch detail endpoint
-- [ ] GET /api/screener/{ticker}/detail: live-fetch one ticker's history (not
+- [x] GET /api/screener/{ticker}/detail: live-fetch one ticker's history (not
       stored), compute full indicators + entry evaluation via existing core,
       return the same payload shape as an UNOWNED stock's detail (no position
       card, entry-only suggestion, chart + indicators + news)
-- [ ] 422/handled state if the ticker can't be fetched
-- [ ] Contract amendment (v-bump)
+- [x] 422/handled state if the ticker can't be fetched
+- [x] Contract amendment (v-bump)
 
 ### 14c Frontend: screener page + click-through + promote
 - [ ] Separate /screener route (not the main dashboard)

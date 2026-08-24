@@ -111,12 +111,12 @@ def get_screener_detail(
 
 ## Tasks
 
-- [ ] Rename `stock_detail_service._news_links` -> `news_links_for_ticker(ticker, investor_relations_url)`, update its one call site in `get_stock_detail`
-- [ ] Add `screener_detail_service.py` with `get_screener_stock_detail`
-- [ ] Add `GET /api/screener/{ticker}/detail` route in `screener.py`
-- [ ] Service tests: valid unowned ticker -> full `StockDetail` (position/user_avg_purchase_price None, chart populated); insufficient-history ticker (short + zero-bar history) -> status + trading_days_until_ready; unresolved ticker -> `UnknownTickerError`
-- [ ] Route tests (`FakeProvider`, same pattern as `test_stocks_route.py`): 200 full unowned shape (`position: null`, `chart.userAvgPurchasePrice: null`, `suggestion.type: "entry"`); 422 unknown ticker; insufficient-history state
-- [ ] Mark this section's checkboxes done in `docs/plan.md`
+- [x] Rename `stock_detail_service._news_links` -> `news_links_for_ticker(ticker, investor_relations_url)`, update its one call site in `get_stock_detail`
+- [x] Add `screener_detail_service.py` with `get_screener_stock_detail`
+- [x] Add `GET /api/screener/{ticker}/detail` route in `screener.py`
+- [x] Service tests: valid unowned ticker -> full `StockDetail` (position/user_avg_purchase_price None, chart populated); insufficient-history ticker (short + zero-bar history) -> status + trading_days_until_ready; unresolved ticker -> `UnknownTickerError`
+- [x] Route tests (`FakeProvider`, same pattern as `test_stocks_route.py`): 200 full unowned shape (`position: null`, `chart.userAvgPurchasePrice: null`, `suggestion.type: "entry"`); 422 unknown ticker; insufficient-history state
+- [x] Mark this section's checkboxes done in `docs/plan.md`
 
 ## Open questions
 
