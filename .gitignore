@@ -43,6 +43,7 @@ coverage.xml
 *.log
 uploads/
 media/
+stockmon_dump_*.pgdump
 
 # Logs and databases
 *.log
