@@ -19,7 +19,7 @@ function BackLink() {
   return (
     <Link
       to="/screener"
-      className="mb-3.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted no-underline hover:text-ink"
+      className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted no-underline hover:text-ink"
     >
       <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
       Back to screener
@@ -79,7 +79,7 @@ export function ScreenerDetailPage() {
 
   return (
     <div>
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
         <BackLink />
         <TrackStockButton ticker={data.ticker} showToast={toast.show} />
       </div>

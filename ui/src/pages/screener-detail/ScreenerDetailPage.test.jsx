@@ -130,7 +130,7 @@ describe("ScreenerDetailPage", () => {
     expect(await screen.findByText("PLTR added to your watchlist.")).toBeInTheDocument();
   });
 
-  it("shows a neutral toast when the ticker is already tracked (409)", async () => {
+  it("shows both a neutral toast and a standing inline banner when the ticker is already tracked (409)", async () => {
     getScreenerDetailMock.mockResolvedValue(OK_DETAIL);
     const err = new Error("PLTR is already on your watchlist.");
     err.status = 409;
@@ -139,6 +139,7 @@ describe("ScreenerDetailPage", () => {
 
     fireEvent.click(await screen.findByText("Track this stock"));
 
-    expect(await screen.findByText("PLTR is already on your watchlist.")).toBeInTheDocument();
+    const matches = await screen.findAllByText("PLTR is already on your watchlist.");
+    expect(matches).toHaveLength(2); // the toast (auto-dismisses) + the inline banner under the button (stays)
   });
 });

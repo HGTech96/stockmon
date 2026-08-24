@@ -225,6 +225,22 @@ Wiring
 
 Full suite: `npm test` — 43/43 passing across 4 files. `npm run lint` clean (one pre-existing unrelated warning). `npm run build` succeeds.
 
+## Post-review adjustments
+
+- Header row spacing: the gap between the back link/"Track this stock" row
+  and the price/conditions banner below it was relying on `BackLink`'s own
+  incidental `mb-3.5` (14px), which read as too tight next to a full-height
+  button. Moved the margin onto the header row itself (`mb-5`) instead.
+- `TrackStockButton`: on 409 ("already tracked"), the toast alone was easy
+  to miss (4s auto-dismiss). Added a standing inline banner under the
+  button — same "notice below the button" shape as `RefreshButton`'s
+  partial-failure notice — styled with the neutral tokens (matches the
+  toast's "neutral" tone for this case; it's informational, not a warning).
+  The banner clears automatically on retry (`mutation.isError` resets once
+  `mutate()` is called again). Header row alignment switched from
+  `items-center` to `items-start` so the row doesn't recenter when the
+  banner appears (same reasoning as `DashboardPage`'s button row).
+
 ## Open questions
 
 None outstanding — test-infra and track-stock UX were resolved above during

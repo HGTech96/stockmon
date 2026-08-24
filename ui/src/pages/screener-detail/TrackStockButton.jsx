@@ -10,7 +10,10 @@ import { addStock } from "../../api/stocks";
  * known and already resolved (this page only renders once the live fetch
  * for it succeeded), so re-asking for it would be redundant friction.
  * There's no inline-422 path here (no field to correct) -- both the rare
- * 422 and the more likely 409 (already tracked) surface as a toast.
+ * 422 and the more likely 409 (already tracked) surface as a toast AND a
+ * standing inline banner under the button (same "notice below the button"
+ * pattern as RefreshButton's partial-failure notice), since a 4s toast is
+ * easy to miss and "already tracked" is worth leaving visible.
  */
 export function TrackStockButton({ ticker, showToast }) {
   const queryClient = useQueryClient();
@@ -32,14 +35,22 @@ export function TrackStockButton({ ticker, showToast }) {
   });
 
   return (
-    <button
-      type="button"
-      onClick={() => mutation.mutate()}
-      disabled={mutation.isPending || mutation.isSuccess}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink disabled:opacity-50"
-    >
-      <Plus className="h-[15px] w-[15px]" strokeWidth={2} />
-      {mutation.isPending ? "Adding…" : mutation.isSuccess ? "Added" : "Track this stock"}
-    </button>
+    <div className="flex flex-col items-end gap-2">
+      <button
+        type="button"
+        onClick={() => mutation.mutate()}
+        disabled={mutation.isPending || mutation.isSuccess}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink disabled:opacity-50"
+      >
+        <Plus className="h-[15px] w-[15px]" strokeWidth={2} />
+        {mutation.isPending ? "Adding…" : mutation.isSuccess ? "Added" : "Track this stock"}
+      </button>
+
+      {mutation.isError && (
+        <div className="max-w-[280px] rounded-lg border border-neutral-border bg-neutral-bg px-3 py-2.5 text-[13px] text-neutral">
+          {mutation.error.message}
+        </div>
+      )}
+    </div>
   );
 }
