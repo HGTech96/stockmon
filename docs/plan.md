@@ -147,3 +147,40 @@ Do not start a phase before the previous one is done and committed.
 - [x] Client-side only, no persistence, reset-all affordance
 - [x] Empty-result state distinct from other empty states
       (see docs/planning/phase-13-filtering.md)
+
+## Phase 14 — Stock screener (separate tool from the main dashboard)
+
+A screener that evaluates a large, separate universe (~150 stocks) read from a
+plain text file, precomputed by a manually-run terminal job, results cached in
+a table and shown on a separate page. NOT the tracked watchlist — shares no data
+with the stocks/daily_prices tables. Reuses all existing core evaluation.
+
+### 14a Backend: screener job + results
+- [ ] screener_stocks.txt (one ticker per line; user-edited, not in DB; ship an example)
+- [ ] screener_results table (latest run only): ticker, company_name,
+      current_price, change_1d_pct, suggestion, conditions_met, conditions_total,
+      rsi, price_vs_30d_avg_pct, sharp_move, run_at
+- [ ] scripts/run_screener.py: read file; batched fetch (size ~10, 1–2s pause
+      between batches, both tunable constants); evaluate via existing core
+      (entry-only BUY/WAIT); truncate+rewrite results atomically; concise
+      terminal logging; failed ticker skipped not fatal
+- [ ] GET /api/screener: latest-run rows + run_at; explicit never-run state
+- [ ] Contract amendment (v-bump) for GET /api/screener
+
+### 14b Backend: live-fetch detail endpoint
+- [ ] GET /api/screener/{ticker}/detail: live-fetch one ticker's history (not
+      stored), compute full indicators + entry evaluation via existing core,
+      return the same payload shape as an UNOWNED stock's detail (no position
+      card, entry-only suggestion, chart + indicators + news)
+- [ ] 422/handled state if the ticker can't be fetched
+- [ ] Contract amendment (v-bump)
+
+### 14c Frontend: screener page + click-through + promote
+- [ ] Separate /screener route (not the main dashboard)
+- [ ] Dashboard-style table reusing the Phase 12/13 sort+filter view-state layer
+- [ ] Columns: ticker+name, price, 1d change, suggestion, conditions-met, RSI,
+      price-vs-30d-avg, sharp-move indicator
+- [ ] "Last run" timestamp; never-run empty state ("Run the screener job first")
+- [ ] Row click → detail page (unowned form) fed by the 14b live-fetch endpoint
+- [ ] "Track this stock" action on that detail → promotes to watchlist via the
+      existing Phase 11b add-stock flow

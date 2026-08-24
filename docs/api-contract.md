@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.7
+# stockmon — API Contract v1.8
 
 Base URL: `http://localhost:8000/api`
 
@@ -515,6 +515,87 @@ Response `201`:
 - `409 { "error": "<TICKER> is already on your watchlist." }` — ticker
   already exists.
 
+## Screener (v1.8)
+
+Two new read-only endpoints. No changes to existing endpoints or
+evaluation rules.
+
+### GET /api/screener
+
+Returns the latest precomputed screener run. Results come from
+`scripts/run_screener.py` writing the `screener_results` table; this
+endpoint only reads that cache — it never fetches live.
+
+```json
+{
+  "meta": { "dataAsOf": "2026-08-19T14:45:00-04:00", "isStale": false, "staleMessage": null },
+  "runAt": "2026-08-19T09:12:00-04:00",
+  "results": [
+    {
+      "ticker": "PLTR",
+      "companyName": "Palantir Technologies Inc.",
+      "currentPrice": 27.85,
+      "change1dPct": 1.52,
+      "suggestion": "BUY",
+      "metCount": 3,
+      "totalCount": 4,
+      "rsi": 38.0,
+      "priceVs30dAvgPct": -4.1,
+      "sharpMove": false,
+      "status": "ok"
+    }
+  ]
+}
+```
+
+- `suggestion` is entry-only: `"BUY"` or `"WAIT"` (no SELL — no positions in
+  the screener universe). Machine enums as elsewhere; UI renders display text.
+- `status`: `"ok"` or `"insufficient_history"` (a screener ticker too new for
+  30 days of data — `suggestion` null, numeric indicators null, still listed).
+- `runAt`: when the screener job last completed. The UI shows "last run …".
+- Never-run / empty state:
+  ```json
+  { "meta": {...}, "runAt": null, "results": [] }
+  ```
+  The UI shows a "Run the screener job first" empty state, distinct from a
+  run that returned rows.
+
+### GET /api/screener/{ticker}/detail
+
+Full detail for ONE screener ticker, computed from a live fetch at request
+time. The ticker need NOT be in the tracked watchlist; nothing is persisted.
+Payload matches an UNOWNED stock's detail on the main dashboard.
+
+```json
+{
+  "meta": { "dataAsOf": "2026-08-19T14:45:00-04:00", "isStale": false, "staleMessage": null },
+  "ticker": "PLTR",
+  "companyName": "Palantir Technologies Inc.",
+  "currentPrice": 27.85,
+  "change1dPct": 1.52,
+  "status": "ok",
+  "suggestion": { "label": "BUY", "type": "entry", "metCount": 3, "totalCount": 4, "checklist": [ /* entry checklist */ ], "note": null },
+  "warning": null,
+  "chart": { "days": [ /* 30 entries: date, close, volume */ ], "thirtyDayAverage": 29.10, "userAvgPurchasePrice": null },
+  "indicators": { /* same 12-field shape as the tracked detail endpoint */ },
+  "position": null,
+  "newsLinks": { "yahooFinance": "...", "googleFinance": "...", "investorRelations": null }
+}
+```
+
+- `position` is always `null` (screener stocks are never owned).
+- `chart.userAvgPurchasePrice` always `null` (no position → no cost line).
+- `suggestion.type` always `"entry"`; label is BUY or WAIT.
+- Computed live via the existing core functions — same analysis as the
+  tracked detail, only the price data is sourced from a live fetch instead
+  of the DB.
+- Insufficient history (a real but too-new ticker): `status:
+  "insufficient_history"`, `suggestion: null`, `indicators: null`,
+  `chart: null`, the daysOfHistory fields as on the tracked detail;
+  `newsLinks` present.
+- Ticker the provider can't resolve at all → 422
+  `{ "error": "Unknown ticker — check the symbol." }`.
+
 ---
 
 ## Changelog
@@ -541,3 +622,9 @@ Response `201`:
 
 - v1.7: added POST /api/stocks (add a ticker to the watchlist). No changes
   to existing endpoint shapes.
+
+- v1.8: added GET /api/screener (cached latest-run screener results,
+  entry-only suggestions, never-run state) and GET /api/screener/{ticker}/detail
+  (live-fetch full detail for any ticker, unowned-stock shape, nothing
+  persisted). No changes to existing endpoints, evaluation rules, or the
+  tracked watchlist.

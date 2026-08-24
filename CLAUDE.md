@@ -96,6 +96,29 @@ always decides. No automated trading, no AI features, no black-box scoring.
   place the UI reorders/hides rows; the "UI computes nothing" rule still holds
   for all values, suggestions, and the default ordering.
 
+## Screener (separate subsystem — Phase 14)
+
+The screener is a distinct tool from the tracked watchlist/dashboard. Keep them
+separate:
+
+- Its universe is a plain text file (screener_stocks.txt), user-edited, ~150
+  tickers, NOT stored in the stocks table and NOT related to the tracked
+  watchlist.
+- Results are precomputed by a manual terminal job (scripts/run_screener.py)
+  into the screener_results table (latest run only, truncate+rewrite). The
+  screener page reads that cache; it never triggers the batch fetch itself.
+- The screener reuses the existing core evaluation/indicator functions — never
+  reimplement analysis. Screener evaluation is entry-only (BUY/WAIT); there are
+  no positions, cash, targets, or exit logic in the screener.
+- Viewing a screener stock's detail (GET /api/screener/{ticker}/detail) is a
+  LIVE fetch, computed and discarded — it does NOT persist into daily_prices or
+  the watchlist.
+- The only way a screener stock enters the tracked watchlist is the explicit
+  "Track this stock" action, which routes through the normal Phase 11b
+  add-stock flow. Casual viewing never modifies tracked data.
+- Screener batch-fetch tuning (batch size, pause between batches) lives as named
+  constants at the top of run_screener.py so it can be dialed if rate-limited.
+
 ## Don't
 
 - Don't add features outside docs/plan.md without asking.
