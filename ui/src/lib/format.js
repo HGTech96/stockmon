@@ -79,6 +79,22 @@ export function fmtTimestamp(isoDatetime) {
 }
 
 /**
+ * @param {string} isoDatetime - ISO 8601 with timezone
+ * @returns {string} "Just now" / "5m ago" / "3h ago" / "2d ago" -- coarsest
+ * whole unit, floored. Used for the screener's "Last screened" phrasing,
+ * distinct from fmtTimestamp's absolute wording used for data-freshness.
+ */
+export function fmtRelativeTime(isoDatetime) {
+  const minutes = Math.floor((Date.now() - new Date(isoDatetime).getTime()) / 60_000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+/**
  * @param {*} value
  * @param {(value: *) => string} formatter
  * @returns {string} "–" when value is null/undefined, else formatter(value).

@@ -177,11 +177,12 @@ with the stocks/daily_prices tables. Reuses all existing core evaluation.
 - [x] Contract amendment (v-bump)
 
 ### 14c Frontend: screener page + click-through + promote
-- [ ] Separate /screener route (not the main dashboard)
-- [ ] Dashboard-style table reusing the Phase 12/13 sort+filter view-state layer
-- [ ] Columns: ticker+name, price, 1d change, suggestion, conditions-met, RSI,
+- [x] Separate /screener route (not the main dashboard)
+- [x] Dashboard-style table reusing the Phase 12/13 sort+filter view-state layer
+- [x] Columns: ticker+name, price, 1d change, suggestion, conditions-met, RSI,
       price-vs-30d-avg, sharp-move indicator
-- [ ] "Last run" timestamp; never-run empty state ("Run the screener job first")
-- [ ] Row click → detail page (unowned form) fed by the 14b live-fetch endpoint
-- [ ] "Track this stock" action on that detail → promotes to watchlist via the
+- [x] "Last run" timestamp; never-run empty state ("Run the screener job first")
+- [x] Row click → detail page (unowned form) fed by the 14b live-fetch endpoint
+- [x] "Track this stock" action on that detail → promotes to watchlist via the
       existing Phase 11b add-stock flow
+      (see docs/planning/phase-14c-screener-page.md)

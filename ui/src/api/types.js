@@ -292,4 +292,28 @@
  *   shows "insufficient_history" until the next refresh.
  */
 
+/**
+ * @typedef {Object} ScreenerResult
+ * @property {string} ticker
+ * @property {string} companyName
+ * @property {number} currentPrice
+ * @property {number} change1dPct
+ * @property {"BUY"|"WAIT"|null} suggestion - entry-only, null when insufficient_history
+ * @property {number|null} metCount
+ * @property {number|null} totalCount
+ * @property {number|null} rsi
+ * @property {number|null} priceVs30dAvgPct
+ * @property {boolean|null} sharpMove
+ * @property {"ok"|"insufficient_history"} status
+ */
+
+/**
+ * @typedef {Object} ScreenerResponse
+ * @property {Meta} meta
+ * @property {string|null} runAt - ISO 8601 with timezone; null when the screener has never run
+ * @property {ScreenerResult[]} results
+ */
+// GET /api/screener/{ticker}/detail reuses StockDetailResponse as-is (the
+// contract specifies an identical shape, position always null).
+
 export {};

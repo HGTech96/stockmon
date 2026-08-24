@@ -4,6 +4,7 @@ const TABS = [
   { to: "/", label: "Dashboard", end: true },
   { to: "/portfolio", label: "Portfolio", end: false },
   { to: "/history", label: "History", end: false },
+  { to: "/screener", label: "Screener", end: false },
 ];
 
 function tabClassName({ isActive }) {
