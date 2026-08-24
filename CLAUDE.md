@@ -52,6 +52,10 @@ always decides. No automated trading, no AI features, no black-box scoring.
 - Plain, non-jargon language in all user-facing text.
 - Type hints everywhere in Python. Tests with pytest for core/ logic
   (indicators, evaluation, position math are pure functions — test them).
+- ui/ uses vitest for pure client-side logic (e.g. lib/tableViewState.js)
+  — same "test the pure functions" principle as backend core/, applied to
+  the one sanctioned place the UI computes anything (see the view-state
+  exception below). Run with `npm test` in ui/.
 - Small, focused commits per completed plan item.
 
 
@@ -83,6 +87,14 @@ always decides. No automated trading, no AI features, no black-box scoring.
   no premature abstractions. Boring, flat, explicit code.
 - The UI computes nothing: no sorting, no derived flags, no counting —
   render what the API sends.
+
+## UI table view-state (sorting/filtering exception)
+- The server owns the DEFAULT row order (attention-first) and remains the
+  landing state. User-initiated column sorting and filtering are presentational
+  view overrides applied client-side to already-fetched rows — no new API calls,
+  no persistence, reset to server default on reload. This is the one sanctioned
+  place the UI reorders/hides rows; the "UI computes nothing" rule still holds
+  for all values, suggestions, and the default ordering.
 
 ## Don't
 

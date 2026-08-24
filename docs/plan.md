@@ -130,3 +130,11 @@ Do not start a phase before the previous one is done and committed.
 - [x] UI: "Add" button beside "Refresh now" above the dashboard table; modal with
       ticker input, inline 422 on unknown ticker; invalidate stocks query on success
       (see docs/planning/phase-11b-add-stock.md)
+
+## Phase 12 — Table sorting
+- [x] Shared table view-state layer (extensible for Phase 13 filtering)
+- [x] Every column sortable on Dashboard and Portfolio
+- [x] Three-state header cycle: asc → desc → server default
+- [x] Nulls always last, regardless of direction
+- [x] No persistence; reload resets to server default
+      (see docs/planning/phase-12-sorting.md)

@@ -1,30 +1,44 @@
+import { SortableHeaderCell } from "../../components/table/SortableHeaderCell";
+import { useTableViewState } from "../../hooks/useTableViewState";
 import { StockRow } from "./StockRow";
+
+const COLUMNS = [
+  { key: "ticker", label: "Stock", align: "left", sortType: "string", accessor: (s) => s.ticker, style: { width: "26%" } },
+  { key: "currentPrice", label: "Price", align: "right", sortType: "number", accessor: (s) => s.currentPrice },
+  { key: "change1dPct", label: "1-day change", align: "right", sortType: "number", accessor: (s) => s.change1dPct },
+  {
+    key: "suggestion",
+    label: "Suggestion",
+    align: "left",
+    sortType: "string",
+    accessor: (s) => (s.status === "insufficient_history" ? null : s.suggestion),
+  },
+  { key: "profitLoss", label: "My P/L", align: "right", sortType: "number", accessor: (s) => s.position?.profitLoss ?? null },
+];
 
 /**
  * @param {{ stocks: import('../../api/types').DashboardStock[] }} props
- * Table shell + one <StockRow/> per entry, rendered in exactly the order
- * the array arrives in. The contract guarantees server-side ordering
- * (SELL, BUY, warnings, WAIT, then insufficient-history) -- this component
- * does not sort, filter, or re-rank.
+ * Table shell + one <StockRow/> per entry. Row order is the server default
+ * (SELL, BUY, warnings, WAIT, then insufficient-history) until the user
+ * clicks a column header -- see hooks/useTableViewState.js. This component
+ * still computes no values, only reorders rows the API already sent.
  */
 export function StockTable({ stocks }) {
+  const { rows, sort, toggleSort } = useTableViewState(stocks, COLUMNS);
+
   return (
     <div className="overflow-hidden rounded-DEFAULT border border-border bg-surface shadow-card">
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
             <tr className="border-b border-border bg-surface-sunken">
-              <th className="px-4.5 py-2.5 text-left text-[11.5px] font-bold tracking-wide text-ink-muted uppercase" style={{ width: "26%" }}>
-                Stock
-              </th>
-              <th className="px-4.5 py-2.5 text-right text-[11.5px] font-bold tracking-wide text-ink-muted uppercase">Price</th>
-              <th className="px-4.5 py-2.5 text-right text-[11.5px] font-bold tracking-wide text-ink-muted uppercase">1-day change</th>
-              <th className="px-4.5 py-2.5 text-left text-[11.5px] font-bold tracking-wide text-ink-muted uppercase">Suggestion</th>
-              <th className="px-4.5 py-2.5 text-right text-[11.5px] font-bold tracking-wide text-ink-muted uppercase">My P/L</th>
+              {COLUMNS.map((c) => (
+                <SortableHeaderCell key={c.key} label={c.label} align={c.align} sortKey={c.key} sort={sort} onSort={toggleSort} style={c.style} />
+              ))}
             </tr>
           </thead>
           <tbody>
-            {stocks.map((stock) => (
+            {rows.map((stock) => (
               <StockRow key={stock.ticker} stock={stock} />
             ))}
           </tbody>
