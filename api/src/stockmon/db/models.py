@@ -26,6 +26,7 @@ class Stock(Base):
     ticker: Mapped[str] = mapped_column(String(10), unique=True, index=True)
     company_name: Mapped[str] = mapped_column(String(200))
     investor_relations_url: Mapped[str | None] = mapped_column(String(500))
+    exchange: Mapped[str | None] = mapped_column(String(20))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     daily_prices: Mapped[list["DailyPrice"]] = relationship(back_populates="stock")

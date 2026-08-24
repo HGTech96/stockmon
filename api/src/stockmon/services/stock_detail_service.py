@@ -20,6 +20,7 @@ class ChartDay:
 
 @dataclass(frozen=True)
 class NewsLinks:
+    cnn_finance: str
     yahoo_finance: str
     google_finance: str
     investor_relations: str | None
@@ -38,10 +39,19 @@ class StockDetail:
     news_links: NewsLinks
 
 
-def news_links_for_ticker(ticker: str, investor_relations_url: str | None) -> NewsLinks:
+def news_links_for_ticker(ticker: str, investor_relations_url: str | None, exchange: str | None = None) -> NewsLinks:
+    """`exchange` is Google Finance's URL suffix (e.g. "NASDAQ", "NYSE") --
+    without it the link resolves ambiguously/incorrectly for tickers that
+    share a symbol across exchanges. Omitted (not None) degrades to the
+    bare ticker path rather than a broken link when the exchange couldn't
+    be resolved."""
+    google_finance = f"https://www.google.com/finance/quote/{ticker}"
+    if exchange:
+        google_finance += f":{exchange}"
     return NewsLinks(
+        cnn_finance=f"https://edition.cnn.com/markets/stocks/{ticker}",
         yahoo_finance=f"https://finance.yahoo.com/quote/{ticker}",
-        google_finance=f"https://www.google.com/finance/quote/{ticker}",
+        google_finance=google_finance,
         investor_relations=investor_relations_url,
     )
 
@@ -79,5 +89,5 @@ def get_stock_detail(db: Session, ticker: str) -> StockDetail:
         user_avg_purchase_price=evaluation.position.avg_purchase_price if evaluation.position else None,
         profit_target=profit_target,
         effective_target_dollars=target,
-        news_links=news_links_for_ticker(stock.ticker, stock.investor_relations_url),
+        news_links=news_links_for_ticker(stock.ticker, stock.investor_relations_url, stock.exchange),
     )

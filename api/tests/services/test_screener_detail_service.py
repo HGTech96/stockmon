@@ -14,10 +14,12 @@ class FakeProvider(MarketDataProvider):
         history_by_ticker: dict[str, list[DailyBar]],
         failing_history_tickers: set[str] | None = None,
         failing_name_tickers: set[str] | None = None,
+        exchange_by_ticker: dict[str, str] | None = None,
     ):
         self._history_by_ticker = history_by_ticker
         self._failing_history_tickers = failing_history_tickers or set()
         self._failing_name_tickers = failing_name_tickers or set()
+        self._exchange_by_ticker = exchange_by_ticker or {}
 
     def fetch_daily_history(self, ticker: str, days: int) -> list[DailyBar]:
         if ticker in self._failing_history_tickers:
@@ -31,6 +33,9 @@ class FakeProvider(MarketDataProvider):
         if ticker in self._failing_name_tickers:
             raise MarketDataError(f"no name for {ticker}")
         return f"{ticker} Inc."
+
+    def fetch_exchange(self, ticker: str) -> str | None:
+        return self._exchange_by_ticker.get(ticker)
 
 
 def _bars(n: int, *, start: date = date(2026, 1, 1)) -> list[DailyBar]:
@@ -71,6 +76,22 @@ def test_unknown_ticker_raises_unknown_ticker_error() -> None:
 
     with pytest.raises(UnknownTickerError):
         get_screener_stock_detail(provider, "ZZZZ")
+
+
+def test_google_finance_link_uses_live_exchange_lookup() -> None:
+    provider = FakeProvider(history_by_ticker={"PLTR": _bars(30)}, exchange_by_ticker={"PLTR": "NASDAQ"})
+
+    detail = get_screener_stock_detail(provider, "pltr")
+
+    assert detail.news_links.google_finance == "https://www.google.com/finance/quote/PLTR:NASDAQ"
+
+
+def test_google_finance_link_omits_suffix_when_exchange_unresolved() -> None:
+    provider = FakeProvider(history_by_ticker={"PLTR": _bars(30)})
+
+    detail = get_screener_stock_detail(provider, "pltr")
+
+    assert detail.news_links.google_finance == "https://www.google.com/finance/quote/PLTR"
 
 
 def test_short_history_is_insufficient_history_not_an_error() -> None:

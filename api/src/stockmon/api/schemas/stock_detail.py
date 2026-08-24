@@ -70,6 +70,7 @@ class DetailPositionSchema(CamelModel):
 
 
 class NewsLinksSchema(CamelModel):
+    cnn_finance: str
     yahoo_finance: str
     google_finance: str
     investor_relations: str | None
@@ -77,6 +78,7 @@ class NewsLinksSchema(CamelModel):
     @classmethod
     def from_core(cls, links: NewsLinks) -> "NewsLinksSchema":
         return cls(
+            cnn_finance=links.cnn_finance,
             yahoo_finance=links.yahoo_finance,
             google_finance=links.google_finance,
             investor_relations=links.investor_relations,

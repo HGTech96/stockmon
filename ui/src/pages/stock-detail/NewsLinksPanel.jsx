@@ -16,13 +16,14 @@ function NewsLink({ href, children }) {
 
 /**
  * @param {{ newsLinks: import('../../api/types').NewsLinks }} props
- * Yahoo/Google links always render; `investorRelations` only when the
+ * CNN/Yahoo/Google links always render; `investorRelations` only when the
  * backend actually sent one -- never a fabricated search-link fallback.
  */
 export function NewsLinksPanel({ newsLinks }) {
   return (
     <div>
       <div className="mb-3.5 flex flex-col gap-2">
+        <NewsLink href={newsLinks.cnnFinance}>CNN Markets</NewsLink>
         <NewsLink href={newsLinks.yahooFinance}>Yahoo Finance</NewsLink>
         <NewsLink href={newsLinks.googleFinance}>Google Finance</NewsLink>
         {newsLinks.investorRelations && <NewsLink href={newsLinks.investorRelations}>Investor relations</NewsLink>}

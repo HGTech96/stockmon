@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.8
+# stockmon — API Contract v1.9
 
 Base URL: `http://localhost:8000/api`
 
@@ -166,6 +166,7 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
     "profitTarget": { "targetDollars": 150.00, "progressDollars": 111.20, "remainingDollars": 38.80, "reached": false }
   },
   "newsLinks": {
+    "cnnFinance": "https://edition.cnn.com/markets/stocks/AAPL",
     "yahooFinance": "https://finance.yahoo.com/quote/AAPL",
     "googleFinance": "https://www.google.com/finance/quote/AAPL:NASDAQ",
     "investorRelations": "https://investor.apple.com"
@@ -579,7 +580,7 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
   "chart": { "days": [ /* 30 entries: date, close, volume */ ], "thirtyDayAverage": 29.10, "userAvgPurchasePrice": null },
   "indicators": { /* same 12-field shape as the tracked detail endpoint */ },
   "position": null,
-  "newsLinks": { "yahooFinance": "...", "googleFinance": "...", "investorRelations": null }
+  "newsLinks": { "cnnFinance": "...", "yahooFinance": "...", "googleFinance": "...", "investorRelations": null }
 }
 ```
 
@@ -628,3 +629,11 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
   (live-fetch full detail for any ticker, unowned-stock shape, nothing
   persisted). No changes to existing endpoints, evaluation rules, or the
   tracked watchlist.
+
+- v1.9: `newsLinks` gains `cnnFinance` (`https://edition.cnn.com/markets/stocks/{TICKER}`,
+  CNN's per-ticker quote page — no exchange suffix needed) on both the
+  tracked and screener detail endpoints; UI renders it as the first
+  news-link button.
+  Also: `googleFinance` now includes the exchange suffix (e.g.
+  `AAPL:NASDAQ`) resolved via the provider — a value change, not a shape
+  change, so no version bump was needed for that half on its own.

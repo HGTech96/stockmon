@@ -22,9 +22,10 @@ class FakeProvider(MarketDataProvider):
     matching the MarketDataProvider ABC exactly (fetch_company_name
     included) so it can stand in for a real provider in add_stock tests."""
 
-    def __init__(self, company_name: str | None, bars: list[DailyBar] | None = None):
+    def __init__(self, company_name: str | None, bars: list[DailyBar] | None = None, exchange: str | None = None):
         self._company_name = company_name
         self._bars = bars
+        self._exchange = exchange
 
     def fetch_daily_history(self, ticker: str, days: int) -> list[DailyBar]:
         if self._bars is None:
@@ -38,6 +39,9 @@ class FakeProvider(MarketDataProvider):
         if self._company_name is None:
             raise MarketDataError(f"no company name available for {ticker}")
         return self._company_name
+
+    def fetch_exchange(self, ticker: str) -> str | None:
+        return self._exchange
 
 
 def _make_bar() -> DailyBar:
@@ -153,6 +157,24 @@ def test_add_stock_valid_ticker_stores_name_and_history(db) -> None:
     stored = db.query(Stock).filter(Stock.ticker == "PLTR").first()
     assert stored is not None
     assert len(_load_bars_for(db, stored)) == 1
+
+
+def test_add_stock_stores_exchange_from_provider(db) -> None:
+    provider = FakeProvider(company_name="Palantir Technologies Inc.", bars=[_make_bar()], exchange="NASDAQ")
+
+    add_stock_to_watchlist(db, provider, "pltr")
+
+    stored = db.query(Stock).filter(Stock.ticker == "PLTR").first()
+    assert stored.exchange == "NASDAQ"
+
+
+def test_add_stock_unresolved_exchange_stores_none(db) -> None:
+    provider = FakeProvider(company_name="Palantir Technologies Inc.", bars=[_make_bar()], exchange=None)
+
+    add_stock_to_watchlist(db, provider, "pltr")
+
+    stored = db.query(Stock).filter(Stock.ticker == "PLTR").first()
+    assert stored.exchange is None
 
 
 def test_add_stock_name_resolves_but_history_fetch_fails_still_adds(db) -> None:

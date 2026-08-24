@@ -37,6 +37,9 @@ class FakeProvider(MarketDataProvider):
             raise MarketDataError(f"no name for {ticker}")
         return f"{ticker} Inc."
 
+    def fetch_exchange(self, ticker: str) -> str | None:
+        return None
+
 
 def _bars(n: int, *, start: date = date(2026, 1, 1)) -> list[DailyBar]:
     return [

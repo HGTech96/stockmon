@@ -13,6 +13,18 @@ from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvi
 # this filter must be added after `import yfinance` to take precedence.
 warnings.filterwarnings("ignore", category=Pandas4Warning)
 
+# yfinance's fast_info["exchange"] short codes -> Google Finance's URL
+# suffix. Deliberately small and conservative: an unrecognized code maps to
+# None (link omits the suffix) rather than guessing wrong.
+_EXCHANGE_SUFFIXES = {
+    "NMS": "NASDAQ",  # Nasdaq Global Select
+    "NGM": "NASDAQ",  # Nasdaq Global Market
+    "NCM": "NASDAQ",  # Nasdaq Capital Market
+    "NYQ": "NYSE",
+    "ASE": "NYSEAMERICAN",
+    "PCX": "NYSEARCA",
+}
+
 
 class YFinanceProvider(MarketDataProvider):
     def fetch_daily_history(self, ticker: str, days: int) -> list[DailyBar]:
@@ -59,3 +71,10 @@ class YFinanceProvider(MarketDataProvider):
         if not name:
             raise MarketDataError(f"no company name available for {ticker}")
         return name
+
+    def fetch_exchange(self, ticker: str) -> str | None:
+        try:
+            code = yf.Ticker(ticker).fast_info.get("exchange")
+        except Exception:
+            return None
+        return _EXCHANGE_SUFFIXES.get(code)

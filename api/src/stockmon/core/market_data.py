@@ -38,3 +38,11 @@ class MarketDataProvider(ABC):
         """Resolve a ticker to its company name. Raises MarketDataError if
         the ticker can't be resolved -- this IS the "does this ticker
         exist" check for POST /api/stocks."""
+
+    @abstractmethod
+    def fetch_exchange(self, ticker: str) -> str | None:
+        """Resolve a ticker to its primary exchange as a Google-Finance-style
+        suffix (e.g. "NASDAQ", "NYSE"), for building news links. Non-critical:
+        returns None rather than raising when the exchange can't be resolved
+        or isn't a recognized one -- callers fall back to an exchange-less
+        link rather than failing the whole request."""

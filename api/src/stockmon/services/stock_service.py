@@ -168,7 +168,12 @@ def add_stock_to_watchlist(db: Session, provider: MarketDataProvider, ticker: st
         # just inside YFinanceProvider, so the rule holds for any provider.
         raise UnknownTickerError(ticker)
 
-    stock = Stock(ticker=ticker, company_name=company_name)
+    # Non-critical: fetch_exchange already swallows its own failures and
+    # returns None rather than raising, so a resolvable ticker is never
+    # rejected over a missing/unrecognized exchange.
+    exchange = provider.fetch_exchange(ticker)
+
+    stock = Stock(ticker=ticker, company_name=company_name, exchange=exchange)
     db.add(stock)
     db.commit()
     db.refresh(stock)

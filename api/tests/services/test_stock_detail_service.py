@@ -72,3 +72,17 @@ def test_investor_relations_url_may_be_null(db) -> None:
     make_daily_prices(db, stock, ["50.00"] * 30)
     detail = get_stock_detail(db, "KO")
     assert detail.news_links.investor_relations is None
+
+
+def test_google_finance_link_includes_exchange_suffix_when_known(db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.", exchange="NASDAQ")
+    make_daily_prices(db, stock, ["50.00"] * 30)
+    detail = get_stock_detail(db, "AAPL")
+    assert detail.news_links.google_finance == "https://www.google.com/finance/quote/AAPL:NASDAQ"
+
+
+def test_google_finance_link_omits_suffix_when_exchange_unknown(db) -> None:
+    stock = make_stock(db, "KO", "Coca-Cola Co.", exchange=None)
+    make_daily_prices(db, stock, ["50.00"] * 30)
+    detail = get_stock_detail(db, "KO")
+    assert detail.news_links.google_finance == "https://www.google.com/finance/quote/KO"

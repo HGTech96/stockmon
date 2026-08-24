@@ -57,7 +57,12 @@ const OK_DETAIL = {
     volumeVsAveragePct: 83.3,
   },
   position: null,
-  newsLinks: { yahooFinance: "https://finance.yahoo.com/quote/PLTR", googleFinance: "https://www.google.com/finance/quote/PLTR", investorRelations: null },
+  newsLinks: {
+    cnnFinance: "https://edition.cnn.com/markets/stocks/",
+    yahooFinance: "https://finance.yahoo.com/quote/PLTR",
+    googleFinance: "https://www.google.com/finance/quote/PLTR",
+    investorRelations: null,
+  },
 };
 
 const INSUFFICIENT_DETAIL = {
@@ -75,7 +80,12 @@ const INSUFFICIENT_DETAIL = {
   chart: null,
   indicators: null,
   position: null,
-  newsLinks: { yahooFinance: "https://finance.yahoo.com/quote/ZZZZ", googleFinance: "https://www.google.com/finance/quote/ZZZZ", investorRelations: null },
+  newsLinks: {
+    cnnFinance: "https://edition.cnn.com/markets/stocks/",
+    yahooFinance: "https://finance.yahoo.com/quote/ZZZZ",
+    googleFinance: "https://www.google.com/finance/quote/ZZZZ",
+    investorRelations: null,
+  },
 };
 
 function renderPage(ticker = "PLTR") {

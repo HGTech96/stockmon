@@ -23,6 +23,9 @@ class FakeProvider(MarketDataProvider):
     def fetch_company_name(self, ticker: str) -> str:
         raise NotImplementedError
 
+    def fetch_exchange(self, ticker: str) -> str | None:
+        raise NotImplementedError
+
 
 def _make_bar(day: date) -> DailyBar:
     return DailyBar(

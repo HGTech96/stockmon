@@ -28,7 +28,7 @@ DETAIL_POSITION_KEYS = {
     "sharesHeld", "avgPurchasePrice", "amountInvested", "currentValue", "profitLoss", "profitLossPct", "profitTarget",
 }
 PROFIT_TARGET_KEYS = {"targetDollars", "progressDollars", "remainingDollars", "reached"}
-NEWS_LINKS_KEYS = {"yahooFinance", "googleFinance", "investorRelations"}
+NEWS_LINKS_KEYS = {"cnnFinance", "yahooFinance", "googleFinance", "investorRelations"}
 
 
 def test_dashboard_empty_watchlist(client) -> None:
@@ -184,6 +184,9 @@ class FakeProvider(MarketDataProvider):
         if self._company_name is None:
             raise MarketDataError(f"no company name available for {ticker}")
         return self._company_name
+
+    def fetch_exchange(self, ticker: str) -> str | None:
+        return None
 
 
 def _bar() -> DailyBar:

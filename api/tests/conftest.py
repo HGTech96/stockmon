@@ -50,8 +50,14 @@ def make_stock(
     ticker: str,
     company_name: str = "Test Company",
     investor_relations_url: str | None = None,
+    exchange: str | None = None,
 ) -> Stock:
-    stock = Stock(ticker=ticker, company_name=company_name, investor_relations_url=investor_relations_url)
+    stock = Stock(
+        ticker=ticker,
+        company_name=company_name,
+        investor_relations_url=investor_relations_url,
+        exchange=exchange,
+    )
     db.add(stock)
     db.commit()
     db.refresh(stock)

@@ -130,6 +130,7 @@
 
 /**
  * @typedef {Object} NewsLinks
+ * @property {string} cnnFinance
  * @property {string} yahooFinance
  * @property {string} googleFinance
  * @property {string|null} investorRelations
