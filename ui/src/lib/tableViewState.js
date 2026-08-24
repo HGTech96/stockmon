@@ -71,3 +71,52 @@ export function cycleSort(currentSort, key) {
   if (currentSort.direction === "asc") return { key, direction: "desc" };
   return null;
 }
+
+/**
+ * @typedef {Object} FilterConfig
+ * @property {(row: any) => string} searchText - pre-joined lowercased ticker + companyName
+ * @property {(row: any) => ("BUY"|"WAIT"|"SELL"|"INSUFFICIENT")} suggestion
+ * @property {(row: any) => boolean} [owned] - omitted on tables with no owned toggle (Portfolio)
+ */
+
+/**
+ * @typedef {Object} FilterState
+ * @property {string} search
+ * @property {Set<"BUY"|"WAIT"|"SELL"|"INSUFFICIENT">} suggestions - empty set = no filter
+ * @property {"all"|"owned"|"not_owned"} owned - ignored when FilterConfig.owned is absent
+ */
+
+/** @type {FilterState} */
+export const EMPTY_FILTER_STATE = { search: "", suggestions: new Set(), owned: "all" };
+
+/**
+ * @param {FilterState} filters
+ * @returns {boolean} true if any filter would narrow the row set -- drives
+ * reset-button visibility and the empty-result vs. genuinely-empty distinction.
+ */
+export function isFilterActive(filters) {
+  return filters.search.trim() !== "" || filters.suggestions.size > 0 || filters.owned !== "all";
+}
+
+/**
+ * @param {Array} rows
+ * @param {FilterConfig} config
+ * @param {FilterState} filters
+ * @returns {Array} new array of rows matching every active filter (AND'd
+ * together); never mutates `rows`. Runs before `applyTableViewState` --
+ * filtering narrows, sorting orders what remains.
+ */
+export function filterRows(rows, config, filters) {
+  const search = filters.search.trim().toLowerCase();
+
+  return rows.filter((row) => {
+    if (search && !config.searchText(row).toLowerCase().includes(search)) return false;
+    if (filters.suggestions.size > 0 && !filters.suggestions.has(config.suggestion(row))) return false;
+    if (config.owned && filters.owned !== "all") {
+      const owned = config.owned(row);
+      if (filters.owned === "owned" && !owned) return false;
+      if (filters.owned === "not_owned" && owned) return false;
+    }
+    return true;
+  });
+}

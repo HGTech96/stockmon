@@ -138,3 +138,12 @@ Do not start a phase before the previous one is done and committed.
 - [x] Nulls always last, regardless of direction
 - [x] No persistence; reload resets to server default
       (see docs/planning/phase-12-sorting.md)
+
+## Phase 13 — Table filtering
+- [x] Plugs into the Phase 12 shared view-state layer (sort + filter combine)
+- [x] Text search (both tables): ticker or company name, case-insensitive substring
+- [x] Suggestion filter (both tables): BUY / WAIT / SELL toggles, multi-select
+- [x] Owned/not-owned filter (dashboard only)
+- [x] Client-side only, no persistence, reset-all affordance
+- [x] Empty-result state distinct from other empty states
+      (see docs/planning/phase-13-filtering.md)

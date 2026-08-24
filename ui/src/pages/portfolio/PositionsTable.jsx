@@ -1,4 +1,6 @@
+import { NoFilterResults } from "../../components/table/NoFilterResults";
 import { SortableHeaderCell } from "../../components/table/SortableHeaderCell";
+import { TableFilterBar } from "../../components/table/TableFilterBar";
 import { useTableViewState } from "../../hooks/useTableViewState";
 import { PositionRow } from "./PositionRow";
 
@@ -19,19 +21,30 @@ const COLUMNS = [
   },
 ];
 
+const FILTER_CONFIG = {
+  searchText: (p) => `${p.ticker} ${p.companyName}`,
+  suggestion: (p) => (p.status === "insufficient_history" ? "INSUFFICIENT" : p.suggestion),
+};
+
 /**
  * @param {{ positions: import('../../api/types').PortfolioPosition[] }} props
  * Table shell + one <PositionRow/> per entry. Row order is the server
- * default until the user clicks a column header -- see
+ * default until the user clicks a column header, and the row set is every
+ * open position until the user searches/filters -- see
  * hooks/useTableViewState.js. Positions closed by a sell (sharesHeld
- * reduced to 0) are already excluded server-side per contract -- no
- * client filtering here.
+ * reduced to 0) are already excluded server-side per contract -- no owned
+ * toggle here, every row is already owned.
  */
 export function PositionsTable({ positions }) {
-  const { rows, sort, toggleSort } = useTableViewState(positions, COLUMNS);
+  const { rows, sort, toggleSort, filters, setSearch, toggleSuggestion, resetFilters, isFiltered } = useTableViewState(
+    positions,
+    COLUMNS,
+    FILTER_CONFIG,
+  );
 
   return (
     <div className="overflow-hidden rounded-DEFAULT border border-border bg-surface shadow-card">
+      <TableFilterBar filters={filters} onSearch={setSearch} onToggleSuggestion={toggleSuggestion} onReset={resetFilters} isFiltered={isFiltered} />
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead>
@@ -42,9 +55,11 @@ export function PositionsTable({ positions }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((position) => (
-              <PositionRow key={position.ticker} position={position} />
-            ))}
+            {rows.length === 0 && isFiltered ? (
+              <NoFilterResults colSpan={COLUMNS.length} onReset={resetFilters} />
+            ) : (
+              rows.map((position) => <PositionRow key={position.ticker} position={position} />)
+            )}
           </tbody>
         </table>
       </div>
