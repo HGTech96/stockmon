@@ -44,27 +44,30 @@ function ChartTooltip({ active, payload }) {
   );
 }
 
-function todaysDot({ cx, cy, index, days }) {
+function todaysDot({ cx, cy, index, days, color }) {
   if (index !== days.length - 1) return null;
-  return <circle cx={cx} cy={cy} r={4} fill="var(--color-ink)" stroke="var(--color-surface)" strokeWidth={1.5} />;
+  return <circle cx={cx} cy={cy} r={4} fill={color} stroke="var(--color-surface)" strokeWidth={1.5} />;
 }
 
 /**
- * @param {{ chart: import('../../api/types').ChartData }} props
+ * @param {{ chart: import('../../api/types').ChartData, change7dPct: number }} props
  * 30-day price + volume, one shared time axis per contract (`chart.days`).
  * `chart.userAvgPurchasePrice` is null when the stock isn't owned, so the
  * dashed avg-cost line and its legend entry simply don't render -- no
- * ownership flag threaded in separately.
+ * ownership flag threaded in separately. The price line/dots pick up the
+ * app's existing good/bad tokens (same green/red used for P/L elsewhere)
+ * based on the 7-day trend direction -- negative is red, non-negative green.
  */
-export function PriceVolumeChart({ chart }) {
+export function PriceVolumeChart({ chart, change7dPct }) {
   const { days, thirtyDayAverage, userAvgPurchasePrice } = chart;
   const maxVolume = Math.max(...days.map((d) => d.volume));
+  const trendColor = change7dPct < 0 ? "var(--color-bad)" : "var(--color-good)";
 
   return (
     <div>
       <div className="mb-1 flex gap-4 text-xs text-ink-muted">
         <span className="flex items-center gap-1.5">
-          <span className="h-0.5 w-3.5 flex-none bg-ink" />
+          <span className="h-0.5 w-3.5 flex-none" style={{ backgroundColor: trendColor }} />
           Price
         </span>
         <span className="flex items-center gap-1.5">
@@ -122,10 +125,10 @@ export function PriceVolumeChart({ chart }) {
             yAxisId="price"
             type="monotone"
             dataKey="close"
-            stroke="var(--color-ink)"
-            strokeWidth={2}
-            dot={(props) => todaysDot({ ...props, days })}
-            activeDot={{ r: 4.5, fill: "var(--color-accent)", stroke: "var(--color-surface)", strokeWidth: 1.5 }}
+            stroke={trendColor}
+            strokeWidth={3}
+            dot={(props) => todaysDot({ ...props, days, color: trendColor })}
+            activeDot={{ r: 4.5, fill: trendColor, stroke: "var(--color-surface)", strokeWidth: 1.5 }}
             isAnimationActive={false}
           />
 

@@ -129,7 +129,7 @@ export function ScreenerDetailPage() {
           <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.55fr_1fr]">
             <div className="flex flex-col gap-4">
               <Panel title="30-day price & volume" subtitle="Closing prices, delayed up to 15 minutes">
-                <PriceVolumeChart chart={data.chart} />
+                <PriceVolumeChart chart={data.chart} change7dPct={data.indicators.change7dPct} />
               </Panel>
               <Panel title="Indicators">
                 <IndicatorsPanel indicators={data.indicators} />
