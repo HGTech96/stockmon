@@ -1,3 +1,5 @@
+import time
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -11,6 +13,11 @@ from stockmon.services.refresh_service import DEFAULT_HISTORY_DAYS
 
 # api/src/stockmon/services/screener_service.py -> parents[4] = repo root
 SCREENER_STOCKS_PATH = Path(__file__).resolve().parents[4] / "screener_stocks.txt"
+
+# Tunable if the provider starts rate-limiting -- used by both the manual
+# terminal job (scripts/run_screener.py) and the on-demand refresh endpoint.
+BATCH_SIZE = 10
+BATCH_PAUSE_SECONDS = 1.5
 
 
 @dataclass(frozen=True)
@@ -30,6 +37,13 @@ class ScreenerRow:
 class ScreenerRun:
     run_at: datetime | None
     rows: list[ScreenerResult]
+
+
+@dataclass(frozen=True)
+class ScreenerBatchResult:
+    rows: list[ScreenerRow]
+    failures: list[ScreenerFetchFailure]
+    run_at: datetime
 
 
 def read_screener_universe(path: Path = SCREENER_STOCKS_PATH) -> list[str]:
@@ -56,6 +70,37 @@ def fetch_and_evaluate_ticker(provider: MarketDataProvider, ticker: str) -> Scre
 
     evaluation = evaluate_screener_bars(bars)
     return ScreenerRow(ticker=ticker, company_name=company_name, evaluation=evaluation)
+
+
+def _chunks(items: list[str], size: int) -> list[list[str]]:
+    return [items[i : i + size] for i in range(0, len(items), size)]
+
+
+def run_screener_batch(provider: MarketDataProvider) -> ScreenerBatchResult:
+    """Reads screener_stocks.txt and fetches+evaluates every ticker in
+    batches (ThreadPoolExecutor per batch, paused between batches). Shared
+    by scripts/run_screener.py and POST /api/screener/refresh so both
+    trigger paths run identical logic. Does not touch the DB -- caller
+    persists the result via save_screener_run."""
+    tickers = read_screener_universe()
+    rows: list[ScreenerRow] = []
+    failures: list[ScreenerFetchFailure] = []
+    batches = _chunks(tickers, BATCH_SIZE)
+
+    for i, batch in enumerate(batches):
+        with ThreadPoolExecutor(max_workers=len(batch)) as pool:
+            for result in pool.map(lambda ticker: fetch_and_evaluate_ticker(provider, ticker), batch):
+                if isinstance(result, ScreenerRow):
+                    rows.append(result)
+                else:
+                    failures.append(result)
+
+        done = len(rows) + len(failures)
+        print(f"[{done}/{len(tickers)}] done")
+        if i < len(batches) - 1:
+            time.sleep(BATCH_PAUSE_SECONDS)
+
+    return ScreenerBatchResult(rows=rows, failures=failures, run_at=datetime.now().astimezone())
 
 
 def save_screener_run(db: Session, rows: list[ScreenerRow], run_at: datetime) -> None:

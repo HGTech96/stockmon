@@ -6,7 +6,7 @@ from pydantic import Field
 from stockmon.api.schemas.base import CamelModel, Money
 from stockmon.api.schemas.common import MetaSchema
 from stockmon.db.models import ScreenerResult
-from stockmon.services.screener_service import ScreenerRun
+from stockmon.services.screener_service import ScreenerBatchResult, ScreenerRun
 
 
 class ScreenerResultSchema(CamelModel):
@@ -54,4 +54,23 @@ class ScreenerResponse(CamelModel):
             meta=meta,
             run_at=run.run_at,
             results=[ScreenerResultSchema.from_core(row) for row in run.rows],
+        )
+
+
+class ScreenerRefreshFailureSchema(CamelModel):
+    ticker: str
+    error: str
+
+
+class ScreenerRefreshResponse(CamelModel):
+    refreshed: list[str]
+    failed: list[ScreenerRefreshFailureSchema]
+    run_at: datetime
+
+    @classmethod
+    def from_core(cls, result: ScreenerBatchResult) -> "ScreenerRefreshResponse":
+        return cls(
+            refreshed=[row.ticker for row in result.rows],
+            failed=[ScreenerRefreshFailureSchema(ticker=f.ticker, error=f.error) for f in result.failures],
+            run_at=result.run_at,
         )

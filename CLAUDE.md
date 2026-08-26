@@ -104,9 +104,11 @@ separate:
 - Its universe is a plain text file (screener_stocks.txt), user-edited, ~150
   tickers, NOT stored in the stocks table and NOT related to the tracked
   watchlist.
-- Results are precomputed by a manual terminal job (scripts/run_screener.py)
-  into the screener_results table (latest run only, truncate+rewrite). The
-  screener page reads that cache; it never triggers the batch fetch itself.
+- Results are precomputed into the screener_results table (latest run only,
+  truncate+rewrite) either by the manual terminal job (scripts/run_screener.py)
+  or by the screener page's "Refresh" button (POST /api/screener/refresh),
+  which runs the same batch-fetch logic synchronously and blocks until done —
+  both call the same shared service function; no job queue.
 - The screener reuses the existing core evaluation/indicator functions — never
   reimplement analysis. Screener evaluation is entry-only (BUY/WAIT); there are
   no positions, cash, targets, or exit logic in the screener.
@@ -117,7 +119,8 @@ separate:
   "Track this stock" action, which routes through the normal Phase 11b
   add-stock flow. Casual viewing never modifies tracked data.
 - Screener batch-fetch tuning (batch size, pause between batches) lives as named
-  constants at the top of run_screener.py so it can be dialed if rate-limited.
+  constants at the top of screener_service.py (shared by run_screener.py and
+  the refresh endpoint) so it can be dialed if rate-limited.
 
 ## Don't
 

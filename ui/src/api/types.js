@@ -317,4 +317,17 @@
 // GET /api/screener/{ticker}/detail reuses StockDetailResponse as-is (the
 // contract specifies an identical shape, position always null).
 
+/**
+ * @typedef {Object} ScreenerRefreshFailure
+ * @property {string} ticker
+ * @property {string} error
+ */
+
+/**
+ * @typedef {Object} ScreenerRefreshResponse
+ * @property {string[]} refreshed
+ * @property {ScreenerRefreshFailure[]} failed
+ * @property {string} runAt
+ */
+
 export {};

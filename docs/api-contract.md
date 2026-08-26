@@ -516,12 +516,31 @@ Response `201`:
 - `409 { "error": "<TICKER> is already on your watchlist." }` — ticker
   already exists.
 
-## Screener (v1.8)
+## Screener (v1.8, refresh endpoint added in v1.10)
 
-Two new read-only endpoints. No changes to existing endpoints or
-evaluation rules.
+### POST /api/screener/refresh
 
-### GET /api/screener
+Synchronous: runs the same batch-fetch+evaluate logic as
+`scripts/run_screener.py` against the full screener universe (~150 tickers),
+then truncate+rewrites `screener_results` — same underlying function, two
+trigger paths. Blocks until the whole run completes (noticeably longer than
+`POST /api/refresh`, likely 1–3+ minutes for ~150 tickers).
+
+```json
+{
+  "refreshed": ["AAPL", "NVDA", "PLTR"],
+  "failed": [ { "ticker": "KO", "error": "download timeout" } ],
+  "runAt": "2026-08-26T14:45:00-04:00"
+}
+```
+
+- Partial failure is a `200` — refreshed tickers appear in the new cached
+  run, failed ones are simply absent from it (same as a terminal-job run
+  that hit a bad ticker). No `meta` field, matching `POST /api/refresh`'s
+  shape.
+- After this call, `GET /api/screener` reflects the new run immediately.
+
+### GET /api/screener (read-only)
 
 Returns the latest precomputed screener run. Results come from
 `scripts/run_screener.py` writing the `screener_results` table; this
@@ -558,8 +577,8 @@ endpoint only reads that cache — it never fetches live.
   ```json
   { "meta": {...}, "runAt": null, "results": [] }
   ```
-  The UI shows a "Run the screener job first" empty state, distinct from a
-  run that returned rows.
+  The UI shows a "No screen yet" empty state with a "Run screener" button
+  (`POST /api/screener/refresh`), distinct from a run that returned rows.
 
 ### GET /api/screener/{ticker}/detail
 
@@ -637,3 +656,9 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
   Also: `googleFinance` now includes the exchange suffix (e.g.
   `AAPL:NASDAQ`) resolved via the provider — a value change, not a shape
   change, so no version bump was needed for that half on its own.
+
+- v1.10: added POST /api/screener/refresh — runs the full screener batch job
+  on demand (same logic as scripts/run_screener.py) and truncate+rewrites
+  screener_results, returning a refreshed/failed/runAt summary shaped like
+  POST /api/refresh's response. No changes to GET /api/screener or
+  GET /api/screener/{ticker}/detail.

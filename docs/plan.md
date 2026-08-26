@@ -186,3 +186,17 @@ with the stocks/daily_prices tables. Reuses all existing core evaluation.
 - [x] "Track this stock" action on that detail → promotes to watchlist via the
       existing Phase 11b add-stock flow
       (see docs/planning/phase-14c-screener-page.md)
+
+## Phase 15 — Screener refresh button
+
+Adds an on-demand "Refresh" button on the screener page that runs the full
+batch job (previously terminal-only) via a new synchronous endpoint. Shared
+batch-fetch logic between the terminal script and the endpoint; no job queue.
+
+- [x] run_screener_batch() shared service function (screener_service.py),
+      used by both scripts/run_screener.py and the new endpoint
+- [x] POST /api/screener/refresh: runs the batch, truncate+rewrites
+      screener_results, returns refreshed/failed/runAt (v1.10 contract bump)
+- [x] Screener page "Refresh" button (also shown as "Run screener" in the
+      never-run empty state, replacing the old terminal-only instruction)
+      (see docs/planning/phase-15-screener-refresh.md)

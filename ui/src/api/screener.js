@@ -12,3 +12,8 @@ export function getScreener() {
 export function getScreenerDetail(ticker) {
   return request(`/screener/${ticker}/detail`);
 }
+
+/** @returns {Promise<import('./types').ScreenerRefreshResponse>} */
+export function postScreenerRefresh() {
+  return request("/screener/refresh", { method: "POST" });
+}

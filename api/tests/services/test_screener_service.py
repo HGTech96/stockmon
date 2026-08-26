@@ -4,11 +4,13 @@ from decimal import Decimal
 from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, Quote
 from stockmon.core.screener import ScreenerEvaluation
 from stockmon.db.models import ScreenerResult
+from stockmon.services import screener_service
 from stockmon.services.screener_service import (
     ScreenerFetchFailure,
     ScreenerRow,
     fetch_and_evaluate_ticker,
     get_latest_screener_run,
+    run_screener_batch,
     save_screener_run,
 )
 
@@ -113,6 +115,20 @@ def test_save_screener_run_truncates_and_rewrites(db) -> None:
     assert len(rows) == 1
     assert rows[0].ticker == "BBB"
     assert rows[0].run_at == run_at_2
+
+
+def test_run_screener_batch_splits_success_and_failure(monkeypatch) -> None:
+    monkeypatch.setattr(screener_service, "read_screener_universe", lambda: ["AAA", "BBB"])
+    provider = FakeProvider(
+        history_by_ticker={"AAA": _bars(30)},
+        failing_history_tickers={"BBB"},
+    )
+
+    result = run_screener_batch(provider)
+
+    assert [row.ticker for row in result.rows] == ["AAA"]
+    assert [f.ticker for f in result.failures] == ["BBB"]
+    assert result.run_at is not None
 
 
 def test_get_latest_screener_run_never_run_is_empty(db) -> None:
