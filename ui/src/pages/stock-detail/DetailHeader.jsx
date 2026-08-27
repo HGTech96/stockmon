@@ -25,7 +25,7 @@ export function DetailHeader({ ticker, companyName, currentPrice, change1dPct, b
       </div>
       <div className="my-2 flex flex-wrap items-baseline gap-3">
         <span className="num text-4xl font-semibold tracking-tight">{fmtOrDash(currentPrice, fmtPrice)}</span>
-        <Trend change1dPct={change1dPct} />
+        <Trend pct={change1dPct} />
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
         <SuggestionBadge label={badgeLabel} size="lg" />

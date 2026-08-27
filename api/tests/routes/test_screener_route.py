@@ -9,7 +9,7 @@ from stockmon.services import screener_service
 
 SCREENER_TOP_KEYS = {"meta", "runAt", "results"}
 SCREENER_RESULT_KEYS = {
-    "ticker", "companyName", "currentPrice", "change1dPct", "suggestion",
+    "ticker", "companyName", "currentPrice", "change1dPct", "change7dPct", "suggestion",
     "metCount", "totalCount", "rsi", "priceVs30dAvgPct", "sharpMove", "status",
 }
 REFRESH_TOP_KEYS = {"refreshed", "failed", "runAt"}
@@ -59,6 +59,7 @@ def test_screener_returns_latest_run_rows(client, db) -> None:
             company_name="Palantir Technologies Inc.",
             current_price=Decimal("27.85"),
             change_1d_pct=Decimal("1.52"),
+            change_7d_pct=Decimal("6.30"),
             status="ok",
             suggestion="BUY",
             conditions_met=3,
@@ -83,6 +84,7 @@ def test_screener_returns_latest_run_rows(client, db) -> None:
     assert row["companyName"] == "Palantir Technologies Inc."
     assert row["currentPrice"] == 27.85
     assert row["change1dPct"] == 1.52
+    assert row["change7dPct"] == 6.3
     assert row["suggestion"] == "BUY"
     assert row["metCount"] == 3
     assert row["totalCount"] == 4
@@ -118,6 +120,7 @@ def test_screener_insufficient_history_row_has_null_indicators(client, db) -> No
     assert row["suggestion"] is None
     assert row["rsi"] is None
     assert row["sharpMove"] is None
+    assert row["change7dPct"] is None
 
 
 def test_post_screener_refresh_populates_cache_and_reports_failures(client, db, monkeypatch) -> None:

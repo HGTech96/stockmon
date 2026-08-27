@@ -299,6 +299,7 @@
  * @property {string} companyName
  * @property {number} currentPrice
  * @property {number} change1dPct
+ * @property {number|null} change7dPct
  * @property {"BUY"|"WAIT"|null} suggestion - entry-only, null when insufficient_history
  * @property {number|null} metCount
  * @property {number|null} totalCount

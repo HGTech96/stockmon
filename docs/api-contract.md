@@ -556,6 +556,7 @@ endpoint only reads that cache — it never fetches live.
       "companyName": "Palantir Technologies Inc.",
       "currentPrice": 27.85,
       "change1dPct": 1.52,
+      "change7dPct": 6.30,
       "suggestion": "BUY",
       "metCount": 3,
       "totalCount": 4,
@@ -662,3 +663,7 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
   screener_results, returning a refreshed/failed/runAt summary shaped like
   POST /api/refresh's response. No changes to GET /api/screener or
   GET /api/screener/{ticker}/detail.
+
+- v1.11: GET /api/screener results gain `change7dPct` (nullable, same source
+  as the detail pages' 7-day indicator — null on insufficient_history rows,
+  matching rsi/priceVs30dAvgPct). No other changes.

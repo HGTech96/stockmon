@@ -8,7 +8,7 @@ import { ScreenerRefreshButton } from "./ScreenerRefreshButton";
 import { ScreenerTable } from "./ScreenerTable";
 
 export function ScreenerPage() {
-  const { setMeta } = useOutletContext();
+  const { setMeta, screenerViewState } = useOutletContext();
   const { data, error, isPending } = useQuery({
     queryKey: ["screener"],
     queryFn: getScreener,
@@ -40,7 +40,7 @@ export function ScreenerPage() {
         {data.runAt !== null && <ScreenerRefreshButton />}
       </div>
 
-      {data.runAt === null ? <ScreenerEmptyState /> : <ScreenerTable results={data.results} />}
+      {data.runAt === null ? <ScreenerEmptyState /> : <ScreenerTable results={data.results} viewState={screenerViewState} />}
     </div>
   );
 }

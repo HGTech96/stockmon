@@ -4,16 +4,23 @@ import { applyTableViewState, cycleSort, EMPTY_FILTER_STATE, filterRows, isFilte
 /**
  * Table-level view-state: holds the user's column-sort choice and filter
  * selections, and applies both to already-fetched rows (filter first, then
- * sort -- filtering narrows, sorting orders what remains). No persistence --
- * state lives only in this component instance, so a reload always lands
- * back on the server default with no filters.
+ * sort -- filtering narrows, sorting orders what remains). No persistence by
+ * default -- state lives only in this component instance, so a reload (or
+ * remount) always lands back on the server default with no filters.
  * @param {Array} rows
  * @param {import('../lib/tableViewState').SortColumn[]} columns
  * @param {import('../lib/tableViewState').FilterConfig} filterConfig
+ * @param {{sort, setSort, filters, setFilters}} [external] - when given,
+ * state is owned by the caller (e.g. lifted above a table/detail route pair
+ * so it survives that navigation) instead of this hook's own useState.
  */
-export function useTableViewState(rows, columns, filterConfig) {
-  const [sort, setSort] = useState(null);
-  const [filters, setFilters] = useState(EMPTY_FILTER_STATE);
+export function useTableViewState(rows, columns, filterConfig, external) {
+  const [localSort, setLocalSort] = useState(null);
+  const [localFilters, setLocalFilters] = useState(EMPTY_FILTER_STATE);
+  const sort = external ? external.sort : localSort;
+  const setSort = external ? external.setSort : setLocalSort;
+  const filters = external ? external.filters : localFilters;
+  const setFilters = external ? external.setFilters : setLocalFilters;
 
   function toggleSort(key) {
     setSort((current) => cycleSort(current, key));

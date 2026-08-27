@@ -200,3 +200,27 @@ batch-fetch logic between the terminal script and the endpoint; no job queue.
 - [x] Screener page "Refresh" button (also shown as "Run screener" in the
       never-run empty state, replacing the old terminal-only instruction)
       (see docs/planning/phase-15-screener-refresh.md)
+
+## Phase 16 — Screener 7-day change column
+
+Adds a "7-day change" column to the screener table, reusing the 7-day
+indicator already computed by the existing pipeline (just not previously
+threaded through to screener rows).
+
+- [x] change_7d_pct plumbed through core ScreenerEvaluation, screener_results
+      column (migration), and the API response (v1.11 contract bump)
+- [x] Screener table gains a sortable "7-day change" column, next to 1-day
+      change, reusing the Trend component (its prop generalized to `pct`)
+      (see docs/planning/phase-16-screener-7day-change.md)
+
+## Phase 17 — Preserve screener sort/filter across detail navigation
+
+Lifts the screener table's sort/filter state into a small pathless layout
+route wrapping /screener and /screener/:ticker, so it survives navigating
+into a row's detail page and back. Scoped to the screener only; leaving the
+section via a nav tab or reload still resets to server default.
+
+- [x] ScreenerSection.jsx (pathless layout route) holds the lifted state
+- [x] useTableViewState gains an optional external-state param; other tables
+      (StockTable, PositionsTable) unaffected
+      (see docs/planning/phase-17-screener-viewstate-persistence.md)

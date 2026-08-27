@@ -33,7 +33,10 @@ export function ScreenerRow({ result }) {
       </td>
       <td className="num px-4.5 py-3.5 text-right">{fmtPrice(result.currentPrice)}</td>
       <td className="num px-4.5 py-3.5 text-right">
-        <Trend change1dPct={result.change1dPct} />
+        <Trend pct={result.change1dPct} />
+      </td>
+      <td className="num px-4.5 py-3.5 text-right">
+        <Trend pct={result.change7dPct} />
       </td>
       <td className="px-4.5 py-3.5">
         {result.status === "insufficient_history" ? (

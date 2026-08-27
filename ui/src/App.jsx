@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
+import { ScreenerSection } from "./components/layout/ScreenerSection";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { StockDetailPage } from "./pages/stock-detail/StockDetailPage";
 import { PortfolioPage } from "./pages/portfolio/PortfolioPage";
@@ -15,8 +16,10 @@ export function App() {
         <Route path="stocks/:ticker" element={<StockDetailPage />} />
         <Route path="portfolio" element={<PortfolioPage />} />
         <Route path="history" element={<HistoryPage />} />
-        <Route path="screener" element={<ScreenerPage />} />
-        <Route path="screener/:ticker" element={<ScreenerDetailPage />} />
+        <Route element={<ScreenerSection />}>
+          <Route path="screener" element={<ScreenerPage />} />
+          <Route path="screener/:ticker" element={<ScreenerDetailPage />} />
+        </Route>
       </Route>
     </Routes>
   );

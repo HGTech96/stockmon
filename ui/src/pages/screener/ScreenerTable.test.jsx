@@ -1,7 +1,9 @@
 import "@testing-library/jest-dom/vitest";
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { EMPTY_FILTER_STATE } from "../../lib/tableViewState";
 import { ScreenerTable } from "./ScreenerTable";
 
 const navigateMock = vi.fn();
@@ -131,5 +133,30 @@ describe("ScreenerTable", () => {
     renderTable();
     fireEvent.click(screen.getByText("PLTR"));
     expect(navigateMock).toHaveBeenCalledWith("/screener/PLTR");
+  });
+
+  it("keeps a sort applied via external viewState across an unmount/remount (simulating list -> detail -> back)", () => {
+    // Mirrors what ScreenerSection does: state lives above the table, so it
+    // outlives ScreenerTable unmounting when navigating to a detail route.
+    function Harness({ mounted }) {
+      const [sort, setSort] = useState(null);
+      const [filters, setFilters] = useState(EMPTY_FILTER_STATE);
+      return mounted ? (
+        <MemoryRouter>
+          <ScreenerTable results={RESULTS} viewState={{ sort, setSort, filters, setFilters }} />
+        </MemoryRouter>
+      ) : null;
+    }
+
+    const { rerender } = render(<Harness mounted={true} />);
+    fireEvent.click(screen.getByText("Price"));
+    let tickerCells = screen.getAllByRole("row").slice(1).map((r) => r.querySelector("td").textContent);
+    expect(tickerCells[0]).toContain("ZZZZ"); // lowest price first, asc
+
+    rerender(<Harness mounted={false} />); // simulates navigating to /screener/:ticker
+    rerender(<Harness mounted={true} />); // simulates navigating back to /screener
+
+    tickerCells = screen.getAllByRole("row").slice(1).map((r) => r.querySelector("td").textContent);
+    expect(tickerCells[0]).toContain("ZZZZ"); // sort survived the round trip
   });
 });

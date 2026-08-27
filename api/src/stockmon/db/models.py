@@ -121,6 +121,7 @@ class ScreenerResult(Base):
     company_name: Mapped[str] = mapped_column(String(200))
     current_price: Mapped[Decimal | None] = mapped_column(Numeric(12, 4))
     change_1d_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 4))
+    change_7d_pct: Mapped[Decimal | None] = mapped_column(Numeric(8, 4))
     status: Mapped[str] = mapped_column(String(20))
     suggestion: Mapped[str | None] = mapped_column(String(4))
     conditions_met: Mapped[int | None] = mapped_column(Integer)

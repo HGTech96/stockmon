@@ -28,6 +28,7 @@ def test_ok_status_runs_entry_evaluation_and_sharp_move() -> None:
     assert evaluation.rsi is not None
     assert evaluation.price_vs_30d_avg_pct is not None and evaluation.price_vs_30d_avg_pct < 0
     assert evaluation.sharp_move is True  # >5% 1-day drop
+    assert evaluation.change_7d_pct is not None
 
 
 def test_wait_status_when_fewer_than_3_conditions_pass() -> None:
@@ -53,6 +54,7 @@ def test_insufficient_history_with_partial_bars_uses_price_snapshot() -> None:
     assert evaluation.rsi is None
     assert evaluation.price_vs_30d_avg_pct is None
     assert evaluation.sharp_move is None
+    assert evaluation.change_7d_pct is None
 
 
 def test_zero_bars_has_no_price_either() -> None:

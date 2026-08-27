@@ -91,7 +91,7 @@ def test_save_screener_run_truncates_and_rewrites(db) -> None:
         ticker="AAA",
         company_name="AAA Inc.",
         evaluation=ScreenerEvaluation(
-            status="ok", current_price=Decimal(10), change_1d_pct=Decimal(1),
+            status="ok", current_price=Decimal(10), change_1d_pct=Decimal(1), change_7d_pct=Decimal(3),
             suggestion_label="WAIT", conditions_met=1, conditions_total=4,
             rsi=Decimal(50), price_vs_30d_avg_pct=Decimal(2), sharp_move=False,
         ),
@@ -104,7 +104,7 @@ def test_save_screener_run_truncates_and_rewrites(db) -> None:
         ticker="BBB",
         company_name="BBB Inc.",
         evaluation=ScreenerEvaluation(
-            status="ok", current_price=Decimal(20), change_1d_pct=Decimal(-1),
+            status="ok", current_price=Decimal(20), change_1d_pct=Decimal(-1), change_7d_pct=Decimal(-6),
             suggestion_label="BUY", conditions_met=3, conditions_total=4,
             rsi=Decimal(30), price_vs_30d_avg_pct=Decimal(-5), sharp_move=True,
         ),
@@ -143,7 +143,7 @@ def test_get_latest_screener_run_returns_rows_and_run_at(db) -> None:
         ticker="AAA",
         company_name="AAA Inc.",
         evaluation=ScreenerEvaluation(
-            status="ok", current_price=Decimal(10), change_1d_pct=Decimal(1),
+            status="ok", current_price=Decimal(10), change_1d_pct=Decimal(1), change_7d_pct=Decimal(3),
             suggestion_label="WAIT", conditions_met=1, conditions_total=4,
             rsi=Decimal(50), price_vs_30d_avg_pct=Decimal(2), sharp_move=False,
         ),

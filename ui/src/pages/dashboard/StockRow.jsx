@@ -43,7 +43,7 @@ export function StockRow({ stock }) {
       </td>
       <td className="num px-4.5 py-3.5 text-right">{fmtPrice(stock.currentPrice)}</td>
       <td className="num px-4.5 py-3.5 text-right">
-        <Trend change1dPct={stock.change1dPct} />
+        <Trend pct={stock.change1dPct} />
       </td>
       <td className="px-4.5 py-3.5">
         {stock.status === "insufficient_history" ? (

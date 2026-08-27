@@ -19,6 +19,7 @@ class ScreenerEvaluation:
     status: Status
     current_price: Decimal | None
     change_1d_pct: Decimal | None
+    change_7d_pct: Decimal | None
     suggestion_label: Literal["BUY", "WAIT"] | None
     conditions_met: int | None
     conditions_total: int | None
@@ -41,6 +42,7 @@ def evaluate_screener_bars(bars: list[DailyBar]) -> ScreenerEvaluation:
             status="insufficient_history",
             current_price=snapshot.current_price if snapshot else None,
             change_1d_pct=snapshot.change_1d_pct if snapshot else None,
+            change_7d_pct=None,
             suggestion_label=None,
             conditions_met=None,
             conditions_total=None,
@@ -57,6 +59,7 @@ def evaluate_screener_bars(bars: list[DailyBar]) -> ScreenerEvaluation:
         status="ok",
         current_price=indicators.current_price,
         change_1d_pct=indicators.change_1d_pct,
+        change_7d_pct=indicators.change_7d_pct,
         suggestion_label=suggestion.label,  # type: ignore[arg-type]
         conditions_met=conditions_met,
         conditions_total=len(suggestion.checklist),

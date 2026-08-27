@@ -16,6 +16,7 @@ class ScreenerResultSchema(CamelModel):
     # to_camel would produce "change1DPct"; the contract fixes the field
     # name as "change1dPct" (lowercase d), so it needs an explicit alias.
     change_1d_pct: Money | None = Field(alias="change1dPct")
+    change_7d_pct: Money | None = Field(alias="change7dPct")
     suggestion: Literal["BUY", "WAIT"] | None
     met_count: int | None
     total_count: int | None
@@ -33,6 +34,7 @@ class ScreenerResultSchema(CamelModel):
             company_name=row.company_name,
             current_price=row.current_price,
             change_1d_pct=row.change_1d_pct,
+            change_7d_pct=row.change_7d_pct,
             suggestion=row.suggestion,  # type: ignore[arg-type]
             met_count=row.conditions_met,
             total_count=row.conditions_total,

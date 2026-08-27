@@ -8,6 +8,7 @@ const COLUMNS = [
   { key: "ticker", label: "Stock", align: "left", sortType: "string", accessor: (r) => r.ticker, style: { width: "22%" } },
   { key: "currentPrice", label: "Price", align: "right", sortType: "number", accessor: (r) => r.currentPrice },
   { key: "change1dPct", label: "1-day change", align: "right", sortType: "number", accessor: (r) => r.change1dPct },
+  { key: "change7dPct", label: "7-day change", align: "right", sortType: "number", accessor: (r) => r.change7dPct },
   {
     key: "suggestion",
     label: "Suggestion",
@@ -28,16 +29,19 @@ const FILTER_CONFIG = {
 };
 
 /**
- * @param {{ results: import('../../api/types').ScreenerResult[] }} props
+ * @param {{ results: import('../../api/types').ScreenerResult[], viewState?: {sort, setSort, filters, setFilters} }} props
  * Table shell + one <ScreenerRow/> per entry. Reuses the exact Phase 12/13
  * view-state layer StockTable/PositionsTable already use -- this component
  * still computes nothing, only reorders/narrows rows the API already sent.
+ * `viewState` (from ScreenerSection, Phase 17) lifts sort/filter state above
+ * this component so it survives navigating to a row's detail page and back.
  */
-export function ScreenerTable({ results }) {
+export function ScreenerTable({ results, viewState }) {
   const { rows, sort, toggleSort, filters, setSearch, toggleSuggestion, resetFilters, isFiltered } = useTableViewState(
     results,
     COLUMNS,
     FILTER_CONFIG,
+    viewState,
   );
 
   return (

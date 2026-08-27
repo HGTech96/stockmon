@@ -113,6 +113,7 @@ def save_screener_run(db: Session, rows: list[ScreenerRow], run_at: datetime) ->
             company_name=row.company_name,
             current_price=row.evaluation.current_price,
             change_1d_pct=row.evaluation.change_1d_pct,
+            change_7d_pct=row.evaluation.change_7d_pct,
             status=row.evaluation.status,
             suggestion=row.evaluation.suggestion_label,
             conditions_met=row.evaluation.conditions_met,
