@@ -1,4 +1,10 @@
+import { motion } from "motion/react";
 import { TradeHistoryRow } from "./TradeHistoryRow";
+
+const listVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.035 } },
+};
 
 const HEADERS = [
   { label: "Date", align: "left" },
@@ -30,7 +36,7 @@ export function TradeHistoryTable({ trades, onEdit, onDelete }) {
               {HEADERS.map((h) => (
                 <th
                   key={h.label}
-                  className={`px-4.5 py-2.5 text-[11.5px] font-bold tracking-wide text-ink-muted uppercase ${
+                  className={`px-4.5 py-2.5 text-[11px] font-bold tracking-wide text-ink-muted uppercase ${
                     h.align === "right" ? "text-right" : "text-left"
                   }`}
                 >
@@ -39,11 +45,11 @@ export function TradeHistoryTable({ trades, onEdit, onDelete }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody variants={listVariants} initial="hidden" animate="visible">
             {trades.map((trade) => (
               <TradeHistoryRow key={trade.id} trade={trade} onEdit={onEdit} onDelete={onDelete} />
             ))}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
     </div>

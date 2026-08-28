@@ -40,14 +40,14 @@ export function TrackStockButton({ ticker, showToast }) {
         type="button"
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending || mutation.isSuccess}
-        className="inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink disabled:opacity-50"
+        className="inline-flex items-center gap-1.5 rounded-sm border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-ink active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
       >
         <Plus className="h-[15px] w-[15px]" strokeWidth={2} />
         {mutation.isPending ? "Adding…" : mutation.isSuccess ? "Added" : "Track this stock"}
       </button>
 
       {mutation.isError && (
-        <div className="max-w-[280px] rounded-lg border border-neutral-border bg-neutral-bg px-3 py-2.5 text-[13px] text-neutral">
+        <div className="max-w-[280px] rounded-sm border border-neutral-border bg-neutral-bg px-3 py-2.5 text-[13px] text-neutral">
           {mutation.error.message}
         </div>
       )}

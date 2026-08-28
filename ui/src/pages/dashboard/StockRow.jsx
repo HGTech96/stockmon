@@ -1,11 +1,17 @@
 import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
 import { TriangleAlert } from "lucide-react";
 import { SuggestionBadge } from "../../components/badge/SuggestionBadge";
 import { Trend } from "../../components/trend/Trend";
 import { fmtPrice, fmtMoneySigned, fmtPct } from "../../lib/format";
 
+const rowVariants = {
+  hidden: { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0 },
+};
+
 /**
- * @param {{ stock: import('../../api/types').DashboardStock }} props
+ * @param {{ stock: import('../../api/types').DashboardStock, justUpdated?: boolean }} props
  * One clickable row -- click or Enter/Space navigates to `/stocks/{ticker}`.
  * Price and 1-day change always render the real values the API sent, even
  * for `insufficient_history` rows (the contract sends real numbers there --
@@ -13,14 +19,24 @@ import { fmtPrice, fmtMoneySigned, fmtPct } from "../../lib/format";
  * Suggestion column is the badge for "ok" rows, or plain muted "Not enough
  * data" text (not badge chrome) for insufficient-history rows. P/L dashes
  * when `position` is null.
+ *
+ * `justUpdated` flashes the row's own good/bad tint via a plain CSS
+ * `transition` on inline `style.backgroundColor` -- NOT Motion's `animate`
+ * prop. This row already carries `variants` for the mount/filter-change
+ * stagger (inherited from the parent tbody's `animate="visible"`); putting
+ * an explicit per-row `animate` object here as well would override that
+ * inherited variant and the row would get stuck at its hidden state.
  */
-export function StockRow({ stock }) {
+export function StockRow({ stock, justUpdated = false }) {
   const navigate = useNavigate();
   const goToDetail = () => navigate(`/stocks/${stock.ticker}`);
+  const flashColor = stock.change1dPct >= 0 ? "rgba(21, 128, 61, 0.13)" : "rgba(200, 16, 46, 0.13)";
 
   return (
-    <tr
-      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+    <motion.tr
+      variants={rowVariants}
+      style={{ backgroundColor: justUpdated ? flashColor : "rgba(0,0,0,0)", transition: "background-color 1.1s ease-out" }}
+      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       tabIndex={0}
       onClick={goToDetail}
       onKeyDown={(e) => {
@@ -37,7 +53,7 @@ export function StockRow({ stock }) {
           )}
           <div>
             <div className="text-[13.5px] font-bold">{stock.ticker}</div>
-            <div className="text-[12.5px] text-ink-muted">{stock.companyName}</div>
+            <div className="text-[12px] text-ink-muted">{stock.companyName}</div>
           </div>
         </div>
       </td>
@@ -61,6 +77,6 @@ export function StockRow({ stock }) {
           <span className="text-ink-faint">–</span>
         )}
       </td>
-    </tr>
+    </motion.tr>
   );
 }

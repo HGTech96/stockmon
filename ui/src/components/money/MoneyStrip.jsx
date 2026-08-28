@@ -1,4 +1,3 @@
-import { Button } from "../ui/button";
 import { fmtMoney, fmtMoneySigned, fmtLossMagnitude } from "../../lib/format";
 import { MoneyCluster } from "./MoneyCluster";
 import { MoneyTile } from "./MoneyTile";
@@ -13,12 +12,22 @@ import { MoneyTile } from "./MoneyTile";
 export function MoneyStrip({ money, onDeposit, onWithdraw }) {
   const depositWithdrawActions = (
     <div className="flex gap-1.5">
-      <Button variant="outline" size="icon-sm" aria-label="Deposit" className="text-base leading-none font-bold" onClick={onDeposit}>
+      <button
+        type="button"
+        aria-label="Deposit"
+        onClick={onDeposit}
+        className="flex h-7 w-7 items-center justify-center rounded-sm border border-good-border bg-good-bg text-base leading-none font-bold text-good transition-colors hover:bg-good hover:text-white active:translate-y-px"
+      >
         +
-      </Button>
-      <Button variant="outline" size="icon-sm" aria-label="Withdraw" className="text-base leading-none font-bold" onClick={onWithdraw}>
-        −
-      </Button>
+      </button>
+      <button
+        type="button"
+        aria-label="Withdraw"
+        onClick={onWithdraw}
+        className="flex h-7 w-7 items-center justify-center rounded-sm border border-bad-border bg-bad-bg text-base leading-none font-bold text-bad transition-colors hover:bg-bad hover:text-white active:translate-y-px"
+      >
+        &minus;
+      </button>
     </div>
   );
 

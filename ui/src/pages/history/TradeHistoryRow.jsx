@@ -1,6 +1,12 @@
+import { motion } from "motion/react";
 import { Pencil, Trash2 } from "lucide-react";
 import { ActionBadge } from "../../components/badge/ActionBadge";
 import { fmtDateShort, fmtShares, fmtPrice, fmtMoney, fmtMoneySigned } from "../../lib/format";
+
+const rowVariants = {
+  hidden: { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0 },
+};
 
 /**
  * @param {{
@@ -14,11 +20,11 @@ import { fmtDateShort, fmtShares, fmtPrice, fmtMoney, fmtMoneySigned } from "../
  */
 export function TradeHistoryRow({ trade, onEdit, onDelete }) {
   return (
-    <tr className="border-b border-border last:border-b-0">
+    <motion.tr variants={rowVariants} className="border-b border-border last:border-b-0">
       <td className="px-4.5 py-3.5 text-[13.5px] text-ink-muted">{fmtDateShort(trade.date)}</td>
       <td className="px-4.5 py-3.5">
         <div className="text-[13.5px] font-bold">{trade.ticker}</div>
-        <div className="text-[12.5px] text-ink-muted">{trade.companyName}</div>
+        <div className="text-[12px] text-ink-muted">{trade.companyName}</div>
       </td>
       <td className="px-4.5 py-3.5">
         <ActionBadge action={trade.action} />
@@ -41,7 +47,7 @@ export function TradeHistoryRow({ trade, onEdit, onDelete }) {
             type="button"
             onClick={() => onEdit(trade)}
             aria-label={`Edit ${trade.ticker} trade`}
-            className="rounded-md p-1.5 text-ink-muted hover:bg-surface-sunken hover:text-ink"
+            className="rounded-sm p-1.5 text-ink-muted transition-colors hover:bg-surface-hover hover:text-ink active:translate-y-px"
           >
             <Pencil className="h-3.5 w-3.5" strokeWidth={1.6} />
           </button>
@@ -49,12 +55,12 @@ export function TradeHistoryRow({ trade, onEdit, onDelete }) {
             type="button"
             onClick={() => onDelete(trade)}
             aria-label={`Delete ${trade.ticker} trade`}
-            className="rounded-md p-1.5 text-ink-muted hover:bg-bad/10 hover:text-bad"
+            className="rounded-sm p-1.5 text-ink-muted transition-colors hover:bg-bad-bg hover:text-bad active:translate-y-px"
           >
             <Trash2 className="h-3.5 w-3.5" strokeWidth={1.6} />
           </button>
         </div>
       </td>
-    </tr>
+    </motion.tr>
   );
 }

@@ -5,7 +5,7 @@ import { HardCapModal } from "./HardCapModal";
 function Item({ label, value, className = "" }) {
   return (
     <div>
-      <div className="mb-1 text-[11.5px] font-semibold text-ink-muted">{label}</div>
+      <div className="mb-1 text-[11px] font-semibold text-ink-muted">{label}</div>
       <div className={`num text-[15px] font-semibold ${className}`}>{value}</div>
     </div>
   );
@@ -36,8 +36,8 @@ export function PositionCard({ ticker, position }) {
         <Item label="Profit / loss %" value={fmtPct(position.profitLossPct)} className={plClass} />
       </div>
       <div className="border-t border-border pt-3.5">
-        <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
-          <span>Progress to hard cap</span>
+        <div className="mb-1.5 flex items-center justify-between text-[12px]">
+          <span className="text-ink-muted">Progress to hard cap</span>
           <div className="flex items-center gap-2">
             <strong className="num text-[13px] font-semibold text-ink">
               {fmtMoney(progressDollars)} of {fmtMoney(targetDollars)}
@@ -45,14 +45,17 @@ export function PositionCard({ ticker, position }) {
             <button
               type="button"
               onClick={() => setEditingCap(true)}
-              className="text-[12px] font-semibold text-accent hover:underline"
+              className="text-[12px] font-semibold text-accent transition-colors hover:text-accent-ink hover:underline"
             >
               Edit
             </button>
           </div>
         </div>
-        <div className="h-2 overflow-hidden rounded-pill bg-surface-sunken">
-          <div className="h-full rounded-pill bg-good" style={{ width: `${(progressDollars / targetDollars) * 100}%` }} />
+        <div className="h-1.5 overflow-hidden rounded-pill bg-surface-sunken">
+          <div
+            className="h-full rounded-pill bg-good transition-[width] duration-500 ease-out"
+            style={{ width: `${(progressDollars / targetDollars) * 100}%` }}
+          />
         </div>
         <div className="mt-1.5 text-[12px] text-ink-muted">{fmtToGo(remainingDollars, reached)}</div>
       </div>

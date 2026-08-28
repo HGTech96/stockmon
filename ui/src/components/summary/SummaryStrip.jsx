@@ -3,9 +3,9 @@ import { fmtMoney, fmtMoneySigned, fmtPct } from "../../lib/format";
 function Tile({ label, value, sub, className = "" }) {
   return (
     <div className="bg-surface px-5 py-4">
-      <div className="mb-1.5 text-xs font-semibold text-ink-muted">{label}</div>
+      <div className="mb-1.5 text-[11px] font-semibold tracking-wide text-ink-muted uppercase">{label}</div>
       <div className={`num text-[22px] font-semibold tracking-tight ${className}`}>{value}</div>
-      {sub && <div className={`mt-0.5 text-[12.5px] ${className}`}>{sub}</div>}
+      {sub && <div className={`num mt-0.5 text-[12.5px] ${className}`}>{sub}</div>}
     </div>
   );
 }

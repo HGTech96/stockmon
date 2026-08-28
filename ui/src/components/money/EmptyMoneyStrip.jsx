@@ -1,4 +1,3 @@
-import { Button } from "../ui/button";
 import { fmtMoney } from "../../lib/format";
 import { MoneyCluster } from "./MoneyCluster";
 import { MoneyTile } from "./MoneyTile";
@@ -14,9 +13,14 @@ import { MoneyTile } from "./MoneyTile";
  */
 export function EmptyMoneyStrip({ onDeposit }) {
   const depositAction = (
-    <Button variant="outline" size="icon-sm" aria-label="Deposit" className="text-base leading-none font-bold" onClick={onDeposit}>
+    <button
+      type="button"
+      aria-label="Deposit"
+      onClick={onDeposit}
+      className="flex h-7 w-7 items-center justify-center rounded-sm border border-good-border bg-good-bg text-base leading-none font-bold text-good transition-colors hover:bg-good hover:text-white active:translate-y-px"
+    >
       +
-    </Button>
+    </button>
   );
 
   return (

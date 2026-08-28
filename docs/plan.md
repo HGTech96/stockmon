@@ -299,3 +299,25 @@ informational, no effect on suggestion logic.
       `core/analysis.py` pure function compares `currentPrice` to the
       analysis value; hidden when there's no analysis or no current price
       (see docs/planning/phase-21-stock-analysis.md)
+
+## Phase 22 — Design system reskin
+
+Visual/motion reskin against a validated external mock
+(claude-designer/work/stockmon): cool-gray bg vs. white surface tokens,
+teal accent replacing brown-gold, sharp `rounded-sm` badges, `motion/react`
+entrance/interaction animation, live-data pulse indicator, noise overlay.
+No changes to data fetching, routing, or business logic — className/token/
+animation only.
+
+- [x] `motion` dependency; `index.css` token replacement
+- [x] `button.jsx` rewrite off the `@base-ui/react` primitive to a plain
+      raw-Tailwind pattern, extended with a 4th `destructive` variant and
+      the full xs/sm/md/lg/icon-xs/icon-sm/icon-lg size scale
+- [x] Badges → `rounded-sm`; new `LiveDot.jsx`; `AppShell.jsx` noise
+      overlay + shell chrome
+- [x] Dashboard, Portfolio, Stock Detail pages + all their
+      components/modals (mocked pages — 1:1 with reference)
+- [x] History, Screener, Settings pages (extrapolated — no mock existed)
+- [x] Page-level crossfade (in `AppShell.jsx`, wrapping `<Outlet/>`),
+      reduced-motion audit, 375px/1440px check per page
+      (see docs/planning/phase-22-design-reskin.md)

@@ -13,7 +13,7 @@ export function ActionBadge({ action }) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-pill border px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wide whitespace-nowrap ${variant.classes}`}
+      className={`inline-flex items-center rounded-sm border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide whitespace-nowrap ${variant.classes}`}
     >
       {variant.text}
     </span>

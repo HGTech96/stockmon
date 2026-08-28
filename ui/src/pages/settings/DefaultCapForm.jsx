@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { putSettings } from "../../api/settings";
 
 const fieldClass =
-  "rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-[13.5px] text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
+  "rounded-sm border border-border-strong bg-surface px-3 py-2.5 text-[13.5px] text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
 
 /**
  * @param {{ defaultProfitTargetDollars: number, onSaved: () => void }} props
@@ -20,8 +20,8 @@ export function DefaultCapForm({ defaultProfitTargetDollars, onSaved }) {
   });
 
   return (
-    <div className="mb-8 max-w-[420px] rounded-DEFAULT border border-border bg-surface p-5">
-      <h2 className="mb-1 text-[14px] font-bold">Default hard cap</h2>
+    <div className="mb-8 max-w-[420px] rounded-DEFAULT border border-border bg-surface p-5 shadow-card">
+      <h2 className="mb-1 text-[14px] font-bold tracking-tight">Default hard cap</h2>
       <p className="mb-4 text-[12.5px] text-ink-muted">
         Applies to any owned stock without its own hard cap set below.
       </p>
@@ -51,13 +51,13 @@ export function DefaultCapForm({ defaultProfitTargetDollars, onSaved }) {
         <button
           type="submit"
           disabled={mutation.isPending}
-          className="rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink disabled:opacity-50"
+          className="rounded-sm border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-ink active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
         >
           {mutation.isPending ? "Saving…" : "Save"}
         </button>
       </form>
       {mutation.isError && (
-        <div className="mt-3 rounded-lg border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">
+        <div className="mt-3 rounded-sm border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">
           {mutation.error.message}
         </div>
       )}

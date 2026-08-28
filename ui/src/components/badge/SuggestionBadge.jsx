@@ -21,11 +21,11 @@ export function SuggestionBadge({ label, size = "sm" }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-pill border font-bold uppercase tracking-wide whitespace-nowrap ${variant.classes} ${
-        isLg ? "px-4 py-1.5 text-[13px]" : "px-2.5 py-1 text-[11.5px]"
+      className={`inline-flex items-center gap-1.5 rounded-sm border font-bold uppercase tracking-wide whitespace-nowrap ${variant.classes} ${
+        isLg ? "px-3.5 py-1.5 text-[12.5px]" : "px-2.5 py-1 text-[11px]"
       }`}
     >
-      <variant.Icon className={isLg ? "h-[15px] w-[15px]" : "h-[13px] w-[13px]"} strokeWidth={2} />
+      <variant.Icon className={isLg ? "h-[14px] w-[14px]" : "h-[12px] w-[12px]"} strokeWidth={2} />
       {variant.text}
     </span>
   );

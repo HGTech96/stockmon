@@ -25,26 +25,26 @@ export function AnalysisCard({ ticker, analysis }) {
         <div className="flex flex-col gap-3">
           <div className="grid grid-cols-2 gap-x-5 gap-y-3">
             <div>
-              <div className="mb-1 text-[11.5px] font-semibold text-ink-muted">Date</div>
+              <div className="mb-1 text-[11px] font-semibold text-ink-muted">Date</div>
               <div className="text-[15px] font-semibold">{fmtDateLong(analysis.date)}</div>
             </div>
             <div>
-              <div className="mb-1 text-[11.5px] font-semibold text-ink-muted">Value</div>
+              <div className="mb-1 text-[11px] font-semibold text-ink-muted">Value</div>
               <div className="num text-[15px] font-semibold">{fmtPrice(analysis.value)}</div>
             </div>
           </div>
 
           {analysis.progress && (
             <div className="border-t border-border pt-3.5">
-              <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
-                <span>Progress to analysis</span>
+              <div className="mb-1.5 flex items-center justify-between text-[12px]">
+                <span className="text-ink-muted">Progress to analysis</span>
                 <strong className="num text-[13px] font-semibold text-ink">
                   {fmtMoney(analysis.progress.progressPrice)} of {fmtMoney(analysis.progress.targetPrice)}
                 </strong>
               </div>
-              <div className="h-2 overflow-hidden rounded-pill bg-surface-sunken">
+              <div className="h-1.5 overflow-hidden rounded-pill bg-surface-sunken">
                 <div
-                  className="h-full rounded-pill bg-good"
+                  className="h-full rounded-pill bg-accent transition-[width] duration-500 ease-out"
                   style={{ width: `${(analysis.progress.progressPrice / analysis.progress.targetPrice) * 100}%` }}
                 />
               </div>
@@ -58,7 +58,7 @@ export function AnalysisCard({ ticker, analysis }) {
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="text-[12px] font-semibold text-accent hover:underline"
+              className="text-[12px] font-semibold text-accent transition-colors hover:text-accent-ink hover:underline"
             >
               Edit
             </button>
@@ -66,7 +66,7 @@ export function AnalysisCard({ ticker, analysis }) {
               type="button"
               onClick={() => clearMutation.mutate()}
               disabled={clearMutation.isPending}
-              className="text-[12px] font-semibold text-ink-muted hover:underline disabled:opacity-50"
+              className="text-[12px] font-semibold text-ink-muted transition-colors hover:text-ink hover:underline disabled:pointer-events-none disabled:opacity-50"
             >
               {clearMutation.isPending ? "Clearing…" : "Clear"}
             </button>
@@ -78,7 +78,7 @@ export function AnalysisCard({ ticker, analysis }) {
           <button
             type="button"
             onClick={() => setEditing(true)}
-            className="text-[12px] font-semibold text-accent hover:underline"
+            className="text-[12px] font-semibold text-accent transition-colors hover:text-accent-ink hover:underline"
           >
             Add analysis
           </button>

@@ -19,7 +19,7 @@ function BackLink() {
   return (
     <Link
       to="/screener"
-      className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted no-underline hover:text-ink"
+      className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted no-underline transition-colors hover:text-ink"
     >
       <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
       Back to screener

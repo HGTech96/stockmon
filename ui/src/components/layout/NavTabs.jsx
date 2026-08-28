@@ -10,7 +10,7 @@ const TABS = [
 
 function tabClassName({ isActive }) {
   return [
-    "flex items-center h-full px-px text-[13.5px] font-semibold border-b-2 -mb-px",
+    "flex items-center h-full px-px text-[13.5px] font-semibold border-b-2 -mb-px transition-colors",
     isActive
       ? "text-ink border-accent"
       : "text-ink-muted border-transparent hover:text-ink",

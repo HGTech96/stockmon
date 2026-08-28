@@ -1,8 +1,14 @@
 import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
 import { TriangleAlert } from "lucide-react";
 import { SuggestionBadge } from "../../components/badge/SuggestionBadge";
 import { Trend } from "../../components/trend/Trend";
 import { fmtOrDash, fmtPct, fmtPrice, fmtRounded } from "../../lib/format";
+
+const rowVariants = {
+  hidden: { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0 },
+};
 
 /**
  * @param {{ result: import('../../api/types').ScreenerResult }} props
@@ -16,8 +22,9 @@ export function ScreenerRow({ result }) {
   const goToDetail = () => navigate(`/screener/${result.ticker}`);
 
   return (
-    <tr
-      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+    <motion.tr
+      variants={rowVariants}
+      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       tabIndex={0}
       onClick={goToDetail}
       onKeyDown={(e) => {
@@ -29,7 +36,7 @@ export function ScreenerRow({ result }) {
     >
       <td className="px-4.5 py-3.5">
         <div className="text-[13.5px] font-bold">{result.ticker}</div>
-        <div className="text-[12.5px] text-ink-muted">{result.companyName}</div>
+        <div className="text-[12px] text-ink-muted">{result.companyName}</div>
       </td>
       <td className="num px-4.5 py-3.5 text-right">{fmtPrice(result.currentPrice)}</td>
       <td className="num px-4.5 py-3.5 text-right">
@@ -57,6 +64,6 @@ export function ScreenerRow({ result }) {
           result.sharpMove && <TriangleAlert className="ml-auto h-[15px] w-[15px] text-warn" strokeWidth={1.8} title="Sharp recent price move" />
         )}
       </td>
-    </tr>
+    </motion.tr>
   );
 }

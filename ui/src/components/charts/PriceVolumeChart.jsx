@@ -5,6 +5,7 @@ import {
   XAxis,
   YAxis,
   Line,
+  Area,
   Bar,
   Cell,
   ReferenceLine,
@@ -30,23 +31,28 @@ function ChartTooltip({ active, payload }) {
   if (!active || !payload?.length) return null;
   const day = payload[0].payload;
   return (
-    <div className="rounded-lg bg-ink px-2.5 py-2 text-xs text-white shadow-pop">
+    <div className="rounded-sm bg-ink px-2.5 py-2 text-xs text-white shadow-pop">
       <div className="mb-0.5 font-semibold">{fmtDateLong(day.date)}</div>
       <div className="flex justify-between gap-3">
         <span className="text-white/60">Close</span>
-        <span>{fmtPrice(day.close)}</span>
+        <span className="num">{fmtPrice(day.close)}</span>
       </div>
       <div className="flex justify-between gap-3">
         <span className="text-white/60">Volume</span>
-        <span>{fmtVolume(day.volume)}</span>
+        <span className="num">{fmtVolume(day.volume)}</span>
       </div>
     </div>
   );
 }
 
 function todaysDot({ cx, cy, index, days, color }) {
-  if (index !== days.length - 1) return null;
-  return <circle cx={cx} cy={cy} r={4} fill={color} stroke="var(--color-surface)" strokeWidth={1.5} />;
+  if (index !== days.length - 1) return <g />;
+  return (
+    <g>
+      <circle cx={cx} cy={cy} r={7} fill={color} opacity={0.18} />
+      <circle cx={cx} cy={cy} r={4} fill={color} stroke="var(--color-surface)" strokeWidth={1.5} />
+    </g>
+  );
 }
 
 /**
@@ -84,6 +90,12 @@ export function PriceVolumeChart({ chart, change7dPct }) {
 
       <ResponsiveContainer width="100%" height={CHART_HEIGHT}>
         <ComposedChart data={days} margin={{ top: 8, right: 4, bottom: 0, left: 4 }}>
+          <defs>
+            <linearGradient id="priceFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={trendColor} stopOpacity={0.16} />
+              <stop offset="100%" stopColor={trendColor} stopOpacity={0} />
+            </linearGradient>
+          </defs>
           <CartesianGrid vertical={false} stroke="var(--color-border)" />
           <XAxis dataKey="date" hide />
           <YAxis
@@ -93,7 +105,7 @@ export function PriceVolumeChart({ chart, change7dPct }) {
           />
           <YAxis yAxisId="volume" hide domain={[0, maxVolume * VOLUME_DOMAIN_MULTIPLIER]} />
 
-          <Bar yAxisId="volume" dataKey="volume" radius={[1, 1, 0, 0]} maxBarSize={14}>
+          <Bar yAxisId="volume" dataKey="volume" radius={[1, 1, 0, 0]} maxBarSize={14} isAnimationActive={false}>
             {days.map((day, i) => (
               <Cell key={day.date} fill={i === days.length - 1 ? "var(--color-accent)" : "var(--color-border-strong)"} />
             ))}
@@ -121,15 +133,27 @@ export function PriceVolumeChart({ chart, change7dPct }) {
             />
           )}
 
+          <Area
+            yAxisId="price"
+            type="monotone"
+            dataKey="close"
+            stroke="none"
+            fill="url(#priceFill)"
+            isAnimationActive
+            animationDuration={700}
+            animationEasing="ease-out"
+          />
           <Line
             yAxisId="price"
             type="monotone"
             dataKey="close"
             stroke={trendColor}
-            strokeWidth={3}
+            strokeWidth={2.5}
             dot={(props) => todaysDot({ ...props, days, color: trendColor })}
             activeDot={{ r: 4.5, fill: trendColor, stroke: "var(--color-surface)", strokeWidth: 1.5 }}
-            isAnimationActive={false}
+            isAnimationActive
+            animationDuration={700}
+            animationEasing="ease-out"
           />
 
           <Tooltip content={<ChartTooltip />} cursor={{ stroke: "var(--color-ink-faint)", strokeDasharray: "2 3" }} />

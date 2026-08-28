@@ -53,11 +53,11 @@
 }
 
 /*
-  Tokens extracted 1:1 from design/reference/stock-helper-design/dashboard-src.html
-  (:root custom properties). This is the single source of truth for color/radius/
-  shadow/font values in the app -- components use the Tailwind utilities generated
-  from this @theme block, never a hardcoded hex. The product is light-only (the
-  reference sets color-scheme:light), so there is no dark variant.
+  Tokens extracted 1:1 from the Phase 22 design reskin reference
+  (claude-designer/work/stockmon/src/index.css). This is the single source
+  of truth for color/radius/shadow/font values in the app -- components use
+  the Tailwind utilities generated from this @theme block, never a
+  hardcoded hex. The product is light-only, so there is no dark variant.
 
   The --primary/--background/--muted/etc. aliases below are the semantic names
   shadcn/ui's generated primitives (Button, Dialog, ...) read internally -- they
@@ -65,33 +65,41 @@
   any component pulled in later already matches the design without edits.
 */
 @theme {
-  --color-bg: #FFFFFF;
+  --color-bg: #F2F3F6;
   --color-surface: #FFFFFF;
-  --color-surface-sunken: #FAF7F2;
-  --color-border: #E8E2D4;
-  --color-border-strong: #CFC4AA;
-  --color-ink: #252118;
-  --color-ink-muted: #706751;
-  --color-ink-faint: #A39985;
-  --color-accent: #7E6225;
-  --color-accent-ink: #594418;
-  --color-accent-soft: #F6F0E5;
-  --color-good: #0F7B4E;
-  --color-good-bg: #E6F4ED;
-  --color-good-border: #BFE3D0;
+  --color-surface-sunken: #ECEEF2;
+  --color-surface-hover: #F6F7F9;
+  --color-border: #E2E5EB;
+  --color-border-strong: #CBD0D9;
+  --color-ink: #14171C;
+  --color-ink-muted: #5B6270;
+  --color-ink-faint: #9AA0AC;
+  --color-accent: #0891B2;
+  --color-accent-ink: #0E7490;
+  --color-accent-soft: #E3F4F8;
+  --color-accent-border: #B6E2EC;
+  --color-good: #15803D;
+  --color-good-bg: #E8F7EE;
+  --color-good-border: #BFE8D0;
   --color-warn: #B45309;
-  --color-warn-bg: #FCEEDD;
-  --color-warn-border: #F3CFA0;
-  --color-neutral: #6B7280;
-  --color-neutral-bg: #EEF0F2;
-  --color-neutral-border: #D8DCE1;
-  --color-bad: #B91C1C;
+  --color-warn-bg: #FDF1DE;
+  --color-warn-border: #F3D9A8;
+  --color-neutral: #5F6B7D;
+  --color-neutral-bg: #EEF1F4;
+  --color-neutral-border: #DDE1E7;
+  --color-bad: #C8102E;
+  --color-bad-bg: #FDEAEC;
+  --color-bad-border: #F5C2CA;
 
-  --radius-DEFAULT: 10px;
+  --radius-DEFAULT: 8px;
+  --radius-sm: 6px;
   --radius-pill: 999px;
 
-  --shadow-card: 0 2px 4px rgba(37, 33, 24, 0.05), 0 14px 32px -12px rgba(37, 33, 24, 0.24);
-  --shadow-pop: 0 16px 40px rgba(37, 33, 24, 0.16), 0 2px 10px rgba(37, 33, 24, 0.08);
+  --shadow-card: 0 1px 2px rgba(20, 23, 28, 0.04), 0 14px 30px -16px rgba(20, 23, 28, 0.16);
+  --shadow-pop: 0 20px 44px rgba(20, 23, 28, 0.16), 0 4px 16px rgba(20, 23, 28, 0.08);
+  --shadow-glow-accent: 0 0 0 1px rgba(8, 145, 178, 0.28), 0 0 20px rgba(8, 145, 178, 0.1);
+  --shadow-glow-good: 0 0 0 1px rgba(21, 128, 61, 0.24), 0 0 16px rgba(21, 128, 61, 0.08);
+  --shadow-glow-bad: 0 0 0 1px rgba(200, 16, 46, 0.24), 0 0 16px rgba(200, 16, 46, 0.08);
 
   --font-sans: 'Public Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
@@ -117,7 +125,7 @@
 }
 
 :root {
-  --radius: 0.625rem; /* 10px -- matches --radius-DEFAULT, base for shadcn's radius-sm/md/lg calc scale */
+  --radius: 0.5rem; /* 8px -- matches --radius-DEFAULT, base for shadcn's radius-sm/md/lg calc scale */
 }
 
 *, *::before, *::after {
@@ -127,6 +135,14 @@
 html, body {
   margin: 0;
   padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: light;
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
 }
 
 body {
@@ -144,6 +160,27 @@ body {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
+}
+
+/* Fixed, pointer-events-none grain to break the dead-flat light surface */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.025;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+::selection {
+  background: var(--color-accent);
+  color: #ffffff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
 @layer base {

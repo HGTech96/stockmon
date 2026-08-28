@@ -3,8 +3,8 @@ import { fmtPrice, fmtPct, fmtVolume, fmtRounded } from "../../lib/format";
 function Row({ label, value }) {
   return (
     <div className="flex items-baseline justify-between gap-3 border-b border-border py-2 last:border-b-0">
-      <dt className="text-[12.5px] text-ink-muted">{label}</dt>
-      <dd className="num m-0 text-[13.5px] font-semibold whitespace-nowrap">{value}</dd>
+      <dt className="text-[12px] text-ink-muted">{label}</dt>
+      <dd className="num m-0 text-[13px] font-semibold whitespace-nowrap">{value}</dd>
     </div>
   );
 }

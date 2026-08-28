@@ -29,13 +29,13 @@ export function ScreenerRefreshButton({ label = "Refresh" }) {
         type="button"
         onClick={() => mutation.mutate()}
         disabled={mutation.isPending}
-        className="rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink disabled:opacity-50"
+        className="rounded-sm border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-ink active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
       >
         {mutation.isPending ? "Refreshing…" : label}
       </button>
 
       {(summary || mutation.isError) && (
-        <div className="rounded-lg border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">
+        <div className="rounded-sm border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">
           {mutation.isError ? mutation.error.message : summary}
         </div>
       )}

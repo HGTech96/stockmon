@@ -1,8 +1,15 @@
+import { motion } from "motion/react";
 import { NoFilterResults } from "../../components/table/NoFilterResults";
 import { SortableHeaderCell } from "../../components/table/SortableHeaderCell";
 import { TableFilterBar } from "../../components/table/TableFilterBar";
 import { useTableViewState } from "../../hooks/useTableViewState";
+import { useRecentlyUpdated } from "../../hooks/useRecentlyUpdated";
 import { StockRow } from "./StockRow";
+
+const listVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.035 } },
+};
 
 const COLUMNS = [
   { key: "ticker", label: "Stock", align: "left", sortType: "string", accessor: (s) => s.ticker, style: { width: "26%" } },
@@ -38,6 +45,7 @@ export function StockTable({ stocks }) {
     COLUMNS,
     FILTER_CONFIG,
   );
+  const recentlyUpdated = useRecentlyUpdated(stocks);
 
   return (
     <div className="overflow-hidden rounded-DEFAULT border border-border bg-surface shadow-card">
@@ -59,13 +67,18 @@ export function StockTable({ stocks }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody
+            key={filters.search + filters.owned + [...filters.suggestions].join(",")}
+            variants={listVariants}
+            initial="hidden"
+            animate="visible"
+          >
             {rows.length === 0 && isFiltered ? (
               <NoFilterResults colSpan={COLUMNS.length} onReset={resetFilters} />
             ) : (
-              rows.map((stock) => <StockRow key={stock.ticker} stock={stock} />)
+              rows.map((stock) => <StockRow key={stock.ticker} stock={stock} justUpdated={recentlyUpdated.has(stock.ticker)} />)
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
     </div>

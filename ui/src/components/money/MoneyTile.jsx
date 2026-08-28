@@ -7,7 +7,7 @@ const TONE_TEXT = {
 const TONE_BG = {
   neutral: "",
   good: "bg-good-bg",
-  bad: "bg-warn-bg",
+  bad: "bg-bad-bg",
 };
 
 /**
@@ -25,9 +25,9 @@ const TONE_BG = {
 export function MoneyTile({ label, value, sub, tone = "neutral", live = false }) {
   return (
     <div className={`flex-1 px-5 py-4 ${live ? TONE_BG[tone] : "bg-surface"}`}>
-      <div className="mb-1.5 text-xs font-semibold text-ink-muted">{label}</div>
-      <div className={`num text-[20px] font-semibold tracking-tight ${TONE_TEXT[tone]}`}>{value}</div>
-      {sub && <div className="mt-0.5 text-[12.5px] text-ink-muted">{sub}</div>}
+      <div className="mb-1.5 text-[11px] font-semibold tracking-wide text-ink-muted uppercase">{label}</div>
+      <div className={`num text-[19px] font-semibold tracking-tight ${TONE_TEXT[tone]}`}>{value}</div>
+      {sub && <div className="mt-0.5 text-[12px] text-ink-muted">{sub}</div>}
     </div>
   );
 }

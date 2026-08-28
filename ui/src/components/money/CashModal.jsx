@@ -12,7 +12,7 @@ function todayIsoDate() {
 }
 
 const fieldClass =
-  "rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-[13.5px] text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
+  "rounded-sm border border-border-strong bg-surface px-3 py-2.5 text-[13.5px] text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
 
 const TITLE = { deposit: "Deposit cash", withdraw: "Withdraw cash" };
 const SUBMIT_LABEL = { deposit: "Save deposit", withdraw: "Save withdrawal" };
@@ -114,7 +114,7 @@ export function CashModal({ type, cashAvailable, onClose }) {
             </div>
 
             {mutation.isError && (
-              <div className="rounded-lg border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">{mutation.error.message}</div>
+              <div className="rounded-sm border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">{mutation.error.message}</div>
             )}
 
             <div className="mt-1 flex justify-end gap-2.5">
@@ -122,14 +122,14 @@ export function CashModal({ type, cashAvailable, onClose }) {
                 type="button"
                 onClick={onClose}
                 disabled={mutation.isPending}
-                className="rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold hover:bg-surface-sunken disabled:opacity-50"
+                className="rounded-sm border border-border-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-surface-sunken active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={mutation.isPending}
-                className="rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink disabled:opacity-50"
+                className="rounded-sm border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-ink active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
               >
                 {mutation.isPending ? "Saving…" : SUBMIT_LABEL[type]}
               </button>

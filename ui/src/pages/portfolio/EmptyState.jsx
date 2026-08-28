@@ -17,7 +17,7 @@ export function EmptyState({ onAddTrade }) {
       <button
         type="button"
         onClick={onAddTrade}
-        className="mt-1 inline-flex items-center gap-1.5 rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink"
+        className="mt-1 inline-flex items-center gap-1.5 rounded-sm border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-ink active:translate-y-px"
       >
         <Plus className="h-[15px] w-[15px]" strokeWidth={2} />
         Add trade

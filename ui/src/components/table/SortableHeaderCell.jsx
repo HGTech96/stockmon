@@ -17,7 +17,7 @@ export function SortableHeaderCell({ label, align = "left", sortKey, sort, onSor
 
   return (
     <th
-      className={`cursor-pointer px-4.5 py-2.5 text-[11.5px] font-bold tracking-wide text-ink-muted uppercase select-none hover:text-ink ${
+      className={`cursor-pointer px-4.5 py-2.5 text-[11px] font-bold tracking-wide text-ink-muted uppercase select-none transition-colors hover:text-ink ${
         align === "right" ? "text-right" : "text-left"
       }`}
       style={style}

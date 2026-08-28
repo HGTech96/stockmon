@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Link, useOutletContext, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "motion/react";
 import { ArrowLeft, ChartNoAxesCombined } from "lucide-react";
 import { getStockDetail } from "../../api/stocks";
 import { Panel } from "../../components/panel/Panel";
@@ -14,11 +15,16 @@ import { PositionCard } from "./PositionCard";
 import { AnalysisCard } from "./AnalysisCard";
 import { NewsLinksPanel } from "./NewsLinksPanel";
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 10 },
+  visible: { opacity: 1, y: 0 },
+};
+
 function BackLink() {
   return (
     <Link
       to="/"
-      className="mb-3.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted no-underline hover:text-ink"
+      className="mb-3.5 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-muted no-underline transition-colors hover:text-ink"
     >
       <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
       Back to dashboard
@@ -107,30 +113,32 @@ export function StockDetailPage() {
   }
 
   return (
-    <div>
+    <motion.div initial="hidden" animate="visible" variants={{ visible: { transition: { staggerChildren: 0.06 } } }}>
       <BackLink />
       <WarningBanner warning={data.warning} />
-      <DetailHead
-        ticker={data.ticker}
-        companyName={data.companyName}
-        currentPrice={data.currentPrice}
-        change1dPct={data.change1dPct}
-        badgeLabel={data.suggestion.label}
-        meta={data.meta}
-      >
-        <SuggestionChecklist suggestion={data.suggestion} />
-      </DetailHead>
+      <motion.div variants={fadeUp} transition={{ duration: 0.35, ease: "easeOut" }}>
+        <DetailHead
+          ticker={data.ticker}
+          companyName={data.companyName}
+          currentPrice={data.currentPrice}
+          change1dPct={data.change1dPct}
+          badgeLabel={data.suggestion.label}
+          meta={data.meta}
+        >
+          <SuggestionChecklist suggestion={data.suggestion} />
+        </DetailHead>
+      </motion.div>
 
       <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[1.55fr_1fr]">
-        <div className="flex flex-col gap-4">
+        <motion.div variants={fadeUp} transition={{ duration: 0.35, ease: "easeOut" }} className="flex flex-col gap-4">
           <Panel title="30-day price & volume" subtitle="Closing prices, delayed up to 15 minutes">
             <PriceVolumeChart chart={data.chart} change7dPct={data.indicators.change7dPct} />
           </Panel>
           <Panel title="Indicators">
             <IndicatorsPanel indicators={data.indicators} />
           </Panel>
-        </div>
-        <div className="flex flex-col gap-4">
+        </motion.div>
+        <motion.div variants={fadeUp} transition={{ duration: 0.35, ease: "easeOut" }} className="flex flex-col gap-4">
           {data.position && (
             <Panel title="Your position">
               <PositionCard ticker={data.ticker} position={data.position} />
@@ -142,8 +150,8 @@ export function StockDetailPage() {
           <Panel title="News & further reading">
             <NewsLinksPanel newsLinks={data.newsLinks} />
           </Panel>
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 }

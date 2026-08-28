@@ -1,6 +1,12 @@
 import { useNavigate } from "react-router-dom";
+import { motion } from "motion/react";
 import { SuggestionBadge } from "../../components/badge/SuggestionBadge";
 import { fmtShares, fmtPrice, fmtMoney, fmtMoneySigned, fmtPct, fmtToGo } from "../../lib/format";
+
+const rowVariants = {
+  hidden: { opacity: 0, y: 6 },
+  visible: { opacity: 1, y: 0 },
+};
 
 /**
  * @param {{ position: import('../../api/types').PortfolioPosition }} props
@@ -16,8 +22,9 @@ export function PositionRow({ position }) {
   const { remainingDollars, reached } = position.profitTarget;
 
   return (
-    <tr
-      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+    <motion.tr
+      variants={rowVariants}
+      className="cursor-pointer border-b border-border last:border-b-0 hover:bg-surface-hover focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
       tabIndex={0}
       onClick={goToDetail}
       onKeyDown={(e) => {
@@ -29,7 +36,7 @@ export function PositionRow({ position }) {
     >
       <td className="px-4.5 py-3.5">
         <div className="text-[13.5px] font-bold">{position.ticker}</div>
-        <div className="text-[12.5px] text-ink-muted">{position.companyName}</div>
+        <div className="text-[12px] text-ink-muted">{position.companyName}</div>
       </td>
       <td className="num px-4.5 py-3.5 text-right">{fmtShares(position.sharesHeld)}</td>
       <td className="num px-4.5 py-3.5 text-right">{fmtPrice(position.avgPurchasePrice)}</td>
@@ -48,6 +55,6 @@ export function PositionRow({ position }) {
           <SuggestionBadge label={position.suggestion} size="sm" />
         )}
       </td>
-    </tr>
+    </motion.tr>
   );
 }

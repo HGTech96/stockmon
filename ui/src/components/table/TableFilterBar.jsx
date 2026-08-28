@@ -7,7 +7,7 @@ const SUGGESTION_CHIPS = [
   { label: "INSUFFICIENT", text: "Not enough data", activeClasses: "bg-surface-sunken text-ink-muted border-border-strong" },
 ];
 
-const INACTIVE_CHIP_CLASSES = "bg-surface text-ink-muted border-border-strong hover:bg-surface-sunken";
+const INACTIVE_CHIP_CLASSES = "bg-surface text-ink-muted border-border-strong hover:bg-surface-hover";
 
 const OWNED_OPTIONS = [
   { value: "all", label: "All" },
@@ -42,7 +42,7 @@ export function TableFilterBar({ filters, onSearch, onToggleSuggestion, onOwnedC
           value={filters.search}
           onChange={(e) => onSearch(e.target.value)}
           placeholder="Search ticker or company"
-          className="w-full rounded-lg border border-border-strong bg-surface py-1.5 pr-3 pl-8 text-[13px] text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="w-full rounded-sm border border-border-strong bg-surface-sunken py-1.5 pr-3 pl-8 text-[13px] text-ink placeholder:text-ink-faint focus:border-accent focus:bg-surface focus:outline-none focus:ring-1 focus:ring-accent"
         />
       </div>
 
@@ -55,7 +55,7 @@ export function TableFilterBar({ filters, onSearch, onToggleSuggestion, onOwnedC
               type="button"
               onClick={() => onToggleSuggestion(chip.label)}
               aria-pressed={active}
-              className={`rounded-pill border px-2.5 py-1 text-[11.5px] font-bold uppercase tracking-wide whitespace-nowrap ${
+              className={`rounded-sm border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide whitespace-nowrap transition-colors ${
                 active ? chip.activeClasses : INACTIVE_CHIP_CLASSES
               }`}
             >
@@ -66,14 +66,14 @@ export function TableFilterBar({ filters, onSearch, onToggleSuggestion, onOwnedC
       </div>
 
       {showOwnedToggle && (
-        <div className="flex overflow-hidden rounded-lg border border-border-strong">
+        <div className="flex overflow-hidden rounded-sm border border-border-strong">
           {OWNED_OPTIONS.map((opt, i) => (
             <button
               key={opt.value}
               type="button"
               onClick={() => onOwnedChange(opt.value)}
-              className={`px-3 py-1.5 text-[12.5px] font-semibold whitespace-nowrap ${i > 0 ? "border-l border-border-strong" : ""} ${
-                filters.owned === opt.value ? "bg-accent-soft text-accent-ink" : "bg-surface text-ink-muted"
+              className={`px-3 py-1.5 text-[12px] font-semibold whitespace-nowrap transition-colors ${i > 0 ? "border-l border-border-strong" : ""} ${
+                filters.owned === opt.value ? "bg-accent-soft text-accent-ink" : "bg-surface text-ink-muted hover:bg-surface-hover"
               }`}
             >
               {opt.label}
@@ -86,7 +86,7 @@ export function TableFilterBar({ filters, onSearch, onToggleSuggestion, onOwnedC
         <button
           type="button"
           onClick={onReset}
-          className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-ink-muted hover:text-ink"
+          className="inline-flex items-center gap-1 text-[12px] font-semibold text-ink-muted transition-colors hover:text-ink"
         >
           <X className="h-3 w-3" strokeWidth={2} />
           Clear filters

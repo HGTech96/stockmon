@@ -1,8 +1,14 @@
+import { motion } from "motion/react";
 import { NoFilterResults } from "../../components/table/NoFilterResults";
 import { SortableHeaderCell } from "../../components/table/SortableHeaderCell";
 import { TableFilterBar } from "../../components/table/TableFilterBar";
 import { useTableViewState } from "../../hooks/useTableViewState";
 import { PositionRow } from "./PositionRow";
+
+const listVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.035 } },
+};
 
 const COLUMNS = [
   { key: "ticker", label: "Stock", align: "left", sortType: "string", accessor: (p) => p.ticker },
@@ -54,13 +60,13 @@ export function PositionsTable({ positions }) {
               ))}
             </tr>
           </thead>
-          <tbody>
+          <motion.tbody key={filters.search + [...filters.suggestions].join(",")} variants={listVariants} initial="hidden" animate="visible">
             {rows.length === 0 && isFiltered ? (
               <NoFilterResults colSpan={COLUMNS.length} onReset={resetFilters} />
             ) : (
               rows.map((position) => <PositionRow key={position.ticker} position={position} />)
             )}
-          </tbody>
+          </motion.tbody>
         </table>
       </div>
     </div>

@@ -55,7 +55,7 @@ export function DeleteTradeConfirm({ trade, onClose }) {
             </p>
 
             {mutation.isError && (
-              <div className="rounded-lg border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">{mutation.error.message}</div>
+              <div className="rounded-sm border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">{mutation.error.message}</div>
             )}
 
             <div className="mt-1 flex justify-end gap-2.5">
@@ -63,7 +63,7 @@ export function DeleteTradeConfirm({ trade, onClose }) {
                 type="button"
                 onClick={onClose}
                 disabled={mutation.isPending}
-                className="rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold hover:bg-surface-sunken disabled:opacity-50"
+                className="rounded-sm border border-border-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-surface-sunken active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -71,7 +71,7 @@ export function DeleteTradeConfirm({ trade, onClose }) {
                 type="button"
                 onClick={() => mutation.mutate()}
                 disabled={mutation.isPending}
-                className="rounded-lg border border-bad bg-bad px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-bad/90 disabled:opacity-50"
+                className="rounded-sm border border-bad bg-bad px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-bad/90 active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
               >
                 {mutation.isPending ? "Deleting…" : "Delete trade"}
               </button>

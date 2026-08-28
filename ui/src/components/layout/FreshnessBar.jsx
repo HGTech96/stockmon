@@ -1,5 +1,6 @@
 import { fmtTimestamp } from "../../lib/format";
 import { MarketStatusBadge } from "./MarketStatusBadge";
+import { LiveDot } from "./LiveDot";
 
 /**
  * "Data as of ..." freshness text plus the market-status badge, with an
@@ -18,13 +19,7 @@ export function FreshnessBar({ meta, showDot = true }) {
   return (
     <div className="flex flex-wrap items-center gap-3 whitespace-nowrap text-xs text-ink-muted">
       <div className="flex items-center gap-2">
-        {showDot && (
-          <span
-            className={`h-[7px] w-[7px] flex-none rounded-full ${
-              meta.isStale ? "bg-warn" : "bg-good"
-            }`}
-          />
-        )}
+        {showDot && <LiveDot tone={meta.isStale ? "warn" : "good"} />}
         <span>Data as of {fmtTimestamp(meta.dataAsOf)}</span>
       </div>
       <span aria-hidden="true">&middot;</span>

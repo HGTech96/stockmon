@@ -11,7 +11,7 @@ export function InsufficientHistoryPanel({ daysOfHistoryAvailable, daysOfHistory
   return (
     <div>
       <div className="mb-2.5 text-xs font-bold tracking-wide text-ink-muted uppercase">Why</div>
-      <div className="flex items-center gap-3.5 rounded-lg border border-dashed border-border-strong bg-surface-sunken px-4.5 py-4">
+      <div className="flex items-center gap-3.5 rounded-DEFAULT border border-dashed border-border-strong bg-surface-sunken px-4.5 py-4">
         <Clock className="h-[22px] w-[22px] flex-none text-ink-faint" strokeWidth={1.5} />
         <div>
           <div className="mb-0.5 text-[13.5px] font-bold">Not enough data yet</div>

@@ -7,7 +7,7 @@
 export function Panel({ title, subtitle, children }) {
   return (
     <div className="rounded-DEFAULT border border-border bg-surface p-5 shadow-card">
-      <div className="mb-3.5 flex items-center justify-between text-[13.5px] font-bold">
+      <div className="mb-3.5 flex items-center justify-between text-[13px] font-bold tracking-tight">
         <span>{title}</span>
         {subtitle && <span className="text-xs font-medium text-ink-muted">{subtitle}</span>}
       </div>

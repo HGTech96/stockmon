@@ -12,7 +12,7 @@ function todayIsoDate() {
 }
 
 const fieldClass =
-  "rounded-lg border border-border-strong bg-surface px-3 py-2.5 text-[13.5px] text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
+  "rounded-sm border border-border-strong bg-surface px-3 py-2.5 text-[13.5px] text-ink focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent";
 
 /**
  * @param {{
@@ -117,12 +117,12 @@ export function TradeModal({ open, onClose, watchlist, stocksByTicker, ownedTick
 
           <div className="flex flex-col gap-1.5">
             <span className="text-[12.5px] font-bold text-ink-muted">Trade type</span>
-            <div className="flex overflow-hidden rounded-lg border border-border-strong">
+            <div className="flex overflow-hidden rounded-sm border border-border-strong">
               <button
                 type="button"
                 onClick={() => handleSideChange("buy")}
                 disabled={mutation.isPending}
-                className={`flex-1 py-2.5 text-[13px] font-semibold ${side === "buy" ? "bg-good-bg text-good" : "bg-surface text-ink-muted"}`}
+                className={`flex-1 py-2.5 text-[13px] font-semibold transition-colors ${side === "buy" ? "bg-good-bg text-good" : "bg-surface text-ink-muted"}`}
               >
                 Buy
               </button>
@@ -130,7 +130,7 @@ export function TradeModal({ open, onClose, watchlist, stocksByTicker, ownedTick
                 type="button"
                 onClick={() => handleSideChange("sell")}
                 disabled={mutation.isPending}
-                className={`flex-1 border-l border-border-strong py-2.5 text-[13px] font-semibold ${
+                className={`flex-1 border-l border-border-strong py-2.5 text-[13px] font-semibold transition-colors ${
                   side === "sell" ? "bg-warn-bg text-warn" : "bg-surface text-ink-muted"
                 }`}
               >
@@ -190,14 +190,14 @@ export function TradeModal({ open, onClose, watchlist, stocksByTicker, ownedTick
           </div>
 
           {showHint && (
-            <div className="flex items-start gap-1.5 rounded-lg bg-accent-soft px-2.5 py-2 text-xs text-accent-ink">
+            <div className="flex items-start gap-1.5 rounded-sm bg-accent-soft px-2.5 py-2 text-xs text-accent-ink">
               <Info className="mt-0.5 h-3.5 w-3.5 flex-none" strokeWidth={1.6} />
               <span>This will update your average purchase price for this stock.</span>
             </div>
           )}
 
           {mutation.isError && (
-            <div className="rounded-lg border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">{mutation.error.message}</div>
+            <div className="rounded-sm border border-warn-border bg-warn-bg px-3 py-2.5 text-[13px] text-warn">{mutation.error.message}</div>
           )}
 
           <div className="mt-1 flex justify-end gap-2.5">
@@ -205,14 +205,14 @@ export function TradeModal({ open, onClose, watchlist, stocksByTicker, ownedTick
               type="button"
               onClick={onClose}
               disabled={mutation.isPending}
-              className="rounded-lg border border-border-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold hover:bg-surface-sunken disabled:opacity-50"
+              className="rounded-sm border border-border-strong bg-surface px-4 py-2.5 text-[13.5px] font-semibold transition-colors hover:bg-surface-sunken active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={mutation.isPending}
-              className="rounded-lg border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white hover:bg-accent-ink disabled:opacity-50"
+              className="rounded-sm border border-accent bg-accent px-4 py-2.5 text-[13.5px] font-semibold text-white transition-colors hover:bg-accent-ink active:translate-y-px disabled:pointer-events-none disabled:opacity-50"
             >
               {mutation.isPending ? "Saving…" : "Save trade"}
             </button>
