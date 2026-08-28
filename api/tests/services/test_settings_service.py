@@ -6,6 +6,7 @@ from stockmon.services.settings_service import (
     DEFAULT_TARGET,
     get_effective_target,
     get_settings,
+    remove_position_target,
     set_position_target,
     update_default_target,
 )
@@ -48,3 +49,25 @@ def test_effective_target_falls_back_to_default_without_override(db) -> None:
     stock = make_stock(db, "AAPL")
     update_default_target(db, Decimal("60.00"))
     assert get_effective_target(db, stock.id) == Decimal("60.00")
+
+
+def test_remove_position_target_clears_override(db) -> None:
+    stock = make_stock(db, "AAPL")
+    set_position_target(db, "AAPL", Decimal("150.00"))
+    update_default_target(db, Decimal("60.00"))
+
+    view = remove_position_target(db, "AAPL")
+
+    assert view.per_position_targets == {}
+    assert get_effective_target(db, stock.id) == Decimal("60.00")
+
+
+def test_remove_position_target_is_noop_without_existing_override(db) -> None:
+    make_stock(db, "AAPL")
+    view = remove_position_target(db, "AAPL")
+    assert view.per_position_targets == {}
+
+
+def test_remove_position_target_unknown_ticker_raises_not_found(db) -> None:
+    with pytest.raises(StockNotFoundError):
+        remove_position_target(db, "ZZZZ")

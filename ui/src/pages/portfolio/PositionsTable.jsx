@@ -11,7 +11,7 @@ const COLUMNS = [
   { key: "amountInvested", label: "Invested", align: "right", sortType: "number", accessor: (p) => p.amountInvested },
   { key: "currentValue", label: "Current value", align: "right", sortType: "number", accessor: (p) => p.currentValue },
   { key: "profitLoss", label: "P/L", align: "right", sortType: "number", accessor: (p) => p.profitLoss },
-  { key: "remainingDollars", label: "To target", align: "right", sortType: "number", accessor: (p) => p.profitTarget.remainingDollars },
+  { key: "remainingDollars", label: "To cap", align: "right", sortType: "number", accessor: (p) => p.profitTarget.remainingDollars },
   {
     key: "suggestion",
     label: "Suggestion",

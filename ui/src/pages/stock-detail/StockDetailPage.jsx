@@ -127,7 +127,7 @@ export function StockDetailPage() {
         <div className="flex flex-col gap-4">
           {data.position && (
             <Panel title="Your position">
-              <PositionCard position={data.position} />
+              <PositionCard ticker={data.ticker} position={data.position} />
             </Panel>
           )}
           <Panel title="News & further reading">

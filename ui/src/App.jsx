@@ -7,6 +7,7 @@ import { PortfolioPage } from "./pages/portfolio/PortfolioPage";
 import { HistoryPage } from "./pages/history/HistoryPage";
 import { ScreenerPage } from "./pages/screener/ScreenerPage";
 import { ScreenerDetailPage } from "./pages/screener-detail/ScreenerDetailPage";
+import { SettingsPage } from "./pages/settings/SettingsPage";
 
 export function App() {
   return (
@@ -16,6 +17,7 @@ export function App() {
         <Route path="stocks/:ticker" element={<StockDetailPage />} />
         <Route path="portfolio" element={<PortfolioPage />} />
         <Route path="history" element={<HistoryPage />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route element={<ScreenerSection />}>
           <Route path="screener" element={<ScreenerPage />} />
           <Route path="screener/:ticker" element={<ScreenerDetailPage />} />

@@ -33,3 +33,26 @@ def test_put_position_target_unknown_ticker_is_404(client) -> None:
     r = client.put("/api/settings/targets/ZZZZ", json={"targetDollars": 150.0})
     assert r.status_code == 404
     assert set(r.json().keys()) == {"error"}
+
+
+def test_delete_position_target_clears_override(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    client.put("/api/settings/targets/AAPL", json={"targetDollars": 150.0})
+
+    r = client.delete("/api/settings/targets/AAPL")
+    assert r.status_code == 204
+
+    r2 = client.get("/api/settings")
+    assert r2.json()["perPositionTargets"] == {}
+
+
+def test_delete_position_target_noop_without_existing_override(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    r = client.delete("/api/settings/targets/AAPL")
+    assert r.status_code == 204
+
+
+def test_delete_position_target_unknown_ticker_is_404(client) -> None:
+    r = client.delete("/api/settings/targets/ZZZZ")
+    assert r.status_code == 404
+    assert set(r.json().keys()) == {"error"}

@@ -27,3 +27,11 @@ export function putPositionTarget(ticker, payload) {
     body: JSON.stringify(payload),
   });
 }
+
+/**
+ * @param {string} ticker
+ * @returns {Promise<void>}
+ */
+export function deletePositionTarget(ticker) {
+  return request(`/settings/targets/${ticker}`, { method: "DELETE" });
+}

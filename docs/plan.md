@@ -48,7 +48,7 @@ Do not start a phase before the previous one is done and committed.
 ## Phase 6 — Polish
 - [ ] Auto-refetch interval via TanStack Query
 - [ ] Loading and error states on all pages
-- [ ] Settings page for profit targets
+- [x] Settings page for profit targets (built as "hard cap" wording — see Phase 20)
 - [ ] End-to-end pass: fresh DB → seed → refresh → record trades → verify all pages
 
 ## Phase 7 — Trade history
@@ -224,3 +224,22 @@ section via a nav tab or reload still resets to server default.
 - [x] useTableViewState gains an optional external-state param; other tables
       (StockTable, PositionsTable) unaffected
       (see docs/planning/phase-17-screener-viewstate-persistence.md)
+
+## Phase 20 — Hard cap settings UI
+
+Builds the missing settings UI for the profit-target system (unchecked
+since Phase 6), renamed "hard cap" in all user-facing text. No backend
+evaluation-logic changes — same SELL rule, same dollar unit, same
+default+per-stock-override structure. Adds one small endpoint so an
+override can be cleared back to the default (previously only settable).
+
+- [x] Backend: `remove_position_target` service function +
+      `DELETE /api/settings/targets/{ticker}` (not yet added to
+      docs/api-contract.md — follow-up)
+- [x] UI: SettingsPage.jsx (default cap form + override list with
+      "Reset to default"), HardCapModal.jsx (per-stock override, opened
+      from the stock detail page), /settings route + nav tab
+- [x] Wording: "profit target" → "hard cap" across PositionCard,
+      PositionsTable, EmptyState (display text only — targetDollars/
+      profitTarget field names unchanged)
+      (see docs/planning/phase-20-hard-cap-settings.md)

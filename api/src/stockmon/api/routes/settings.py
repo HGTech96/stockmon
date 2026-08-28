@@ -7,7 +7,12 @@ from stockmon.api.schemas.settings import (
     UpdatePositionTargetRequest,
 )
 from stockmon.db.session import get_db
-from stockmon.services.settings_service import get_settings, set_position_target, update_default_target
+from stockmon.services.settings_service import (
+    get_settings,
+    remove_position_target,
+    set_position_target,
+    update_default_target,
+)
 
 router = APIRouter()
 
@@ -27,3 +32,8 @@ def update_position_target(
     ticker: str, body: UpdatePositionTargetRequest, db: Session = Depends(get_db)
 ) -> SettingsResponse:
     return SettingsResponse.from_core(set_position_target(db, ticker, body.target_dollars))
+
+
+@router.delete("/api/settings/targets/{ticker}", status_code=204)
+def remove_position_target_route(ticker: str, db: Session = Depends(get_db)) -> None:
+    remove_position_target(db, ticker)

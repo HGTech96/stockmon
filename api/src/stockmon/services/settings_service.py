@@ -62,6 +62,19 @@ def set_position_target(db: Session, ticker: str, target_dollars: Decimal) -> Se
     return _build_view(db, _get_or_create_settings(db))
 
 
+def remove_position_target(db: Session, ticker: str) -> SettingsView:
+    stock = db.query(Stock).filter(Stock.ticker == ticker).first()
+    if stock is None:
+        raise StockNotFoundError(ticker)
+
+    override = db.get(ProfitTarget, stock.id)
+    if override is not None:
+        db.delete(override)
+        db.commit()
+
+    return _build_view(db, _get_or_create_settings(db))
+
+
 def get_effective_target(db: Session, stock_id: int) -> Decimal:
     override = db.get(ProfitTarget, stock_id)
     if override is not None:

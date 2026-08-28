@@ -12,7 +12,7 @@ export function EmptyState({ onAddTrade }) {
       <h2 className="text-base font-bold">No trades recorded yet</h2>
       <p className="max-w-[360px] text-[13.5px] leading-relaxed text-ink-muted">
         Your watchlist has stocks, but you haven&rsquo;t logged any trades. Add your first trade to start tracking positions, profit
-        and loss, and progress toward your targets.
+        and loss, and progress toward your hard caps.
       </p>
       <button
         type="button"
