@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime
 from decimal import Decimal
 
@@ -22,6 +22,16 @@ class Quote:
 
 class MarketDataError(Exception):
     """Raised by a MarketDataProvider when a fetch fails for one ticker."""
+
+
+def merge_live_quote(bars: list[DailyBar], quote: Quote) -> list[DailyBar]:
+    """Replaces the most recent bar's close with a live quote when that bar
+    is the same trading day as the quote -- lets callers show a live
+    intraday price instead of the last completed daily close. No-op when
+    there's no bar for the quote's day (market not yet in session)."""
+    if not bars or bars[-1].date != quote.as_of.date():
+        return bars
+    return [*bars[:-1], replace(bars[-1], close=quote.price)]
 
 
 class MarketDataProvider(ABC):

@@ -21,10 +21,15 @@ class FakeProvider(MarketDataProvider):
         history_by_ticker: dict[str, list[DailyBar]],
         failing_history_tickers: set[str] | None = None,
         failing_name_tickers: set[str] | None = None,
+        quote_by_ticker: dict[str, Quote] | None = None,
+        failing_quote_tickers: set[str] | None = None,
     ):
         self._history_by_ticker = history_by_ticker
         self._failing_history_tickers = failing_history_tickers or set()
         self._failing_name_tickers = failing_name_tickers or set()
+        self._quote_by_ticker = quote_by_ticker or {}
+        self._failing_quote_tickers = failing_quote_tickers or set()
+        self.quote_calls: list[str] = []
 
     def fetch_daily_history(self, ticker: str, days: int) -> list[DailyBar]:
         if ticker in self._failing_history_tickers:
@@ -32,7 +37,12 @@ class FakeProvider(MarketDataProvider):
         return self._history_by_ticker[ticker]
 
     def fetch_current_quote(self, ticker: str) -> Quote:
-        raise NotImplementedError
+        self.quote_calls.append(ticker)
+        if ticker in self._failing_quote_tickers:
+            raise MarketDataError(f"no quote for {ticker}")
+        if ticker not in self._quote_by_ticker:
+            raise MarketDataError(f"no quote configured for {ticker}")
+        return self._quote_by_ticker[ticker]
 
     def fetch_company_name(self, ticker: str) -> str:
         if ticker in self._failing_name_tickers:
@@ -83,6 +93,28 @@ def test_fetch_and_evaluate_ticker_name_failure_falls_back_to_symbol() -> None:
     assert isinstance(result, ScreenerRow)
     assert result.company_name == "NEWCO"
     assert result.evaluation.status == "ok"
+
+
+def test_fetch_and_evaluate_ticker_overlays_live_quote_for_todays_bar() -> None:
+    bars = _bars(30, start=date.today() - timedelta(days=29))
+    quote = Quote(price=Decimal("123.45"), as_of=datetime.now())
+    provider = FakeProvider(history_by_ticker={"PLTR": bars}, quote_by_ticker={"PLTR": quote})
+
+    result = fetch_and_evaluate_ticker(provider, "PLTR")
+
+    assert isinstance(result, ScreenerRow)
+    assert result.evaluation.current_price == Decimal("123.45")
+    assert provider.quote_calls == ["PLTR"]
+
+
+def test_fetch_and_evaluate_ticker_falls_back_when_quote_fetch_fails() -> None:
+    bars = _bars(30, start=date.today() - timedelta(days=29))
+    provider = FakeProvider(history_by_ticker={"PLTR": bars}, failing_quote_tickers={"PLTR"})
+
+    result = fetch_and_evaluate_ticker(provider, "PLTR")
+
+    assert isinstance(result, ScreenerRow)
+    assert result.evaluation.current_price == Decimal(100)
 
 
 def test_save_screener_run_truncates_and_rewrites(db) -> None:

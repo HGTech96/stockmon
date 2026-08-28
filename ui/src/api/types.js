@@ -10,6 +10,8 @@
  * @property {string} dataAsOf - ISO 8601 timestamp with timezone.
  * @property {boolean} isStale
  * @property {string|null} staleMessage
+ * @property {"open"|"pre_market"|"after_hours"|"closed_weekend"|"closed_holiday"} marketStatus
+ * @property {string} marketStatusText
  */
 
 /**

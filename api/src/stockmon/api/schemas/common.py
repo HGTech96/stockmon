@@ -12,6 +12,8 @@ class MetaSchema(CamelModel):
     data_as_of: datetime
     is_stale: bool
     stale_message: str | None
+    market_status: Literal["open", "pre_market", "after_hours", "closed_weekend", "closed_holiday"]
+    market_status_text: str
 
     @classmethod
     def from_core(cls, freshness: Freshness) -> "MetaSchema":
@@ -19,6 +21,8 @@ class MetaSchema(CamelModel):
             data_as_of=freshness.data_as_of,
             is_stale=freshness.is_stale,
             stale_message=freshness.stale_message,
+            market_status=freshness.market_status.state,
+            market_status_text=freshness.market_status.label,
         )
 
 

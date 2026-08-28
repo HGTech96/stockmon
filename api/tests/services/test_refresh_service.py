@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -8,9 +8,18 @@ from stockmon.services.refresh_service import refresh_all_stocks, refresh_stock
 
 
 class FakeProvider(MarketDataProvider):
-    def __init__(self, history_by_ticker: dict[str, list[DailyBar]], failing_tickers: set[str]):
+    def __init__(
+        self,
+        history_by_ticker: dict[str, list[DailyBar]],
+        failing_tickers: set[str],
+        quote_by_ticker: dict[str, Quote] | None = None,
+        failing_quote_tickers: set[str] | None = None,
+    ):
         self._history_by_ticker = history_by_ticker
         self._failing_tickers = failing_tickers
+        self._quote_by_ticker = quote_by_ticker or {}
+        self._failing_quote_tickers = failing_quote_tickers or set()
+        self.quote_calls: list[str] = []
 
     def fetch_daily_history(self, ticker: str, days: int) -> list[DailyBar]:
         if ticker in self._failing_tickers:
@@ -18,7 +27,12 @@ class FakeProvider(MarketDataProvider):
         return self._history_by_ticker[ticker]
 
     def fetch_current_quote(self, ticker: str) -> Quote:
-        raise NotImplementedError
+        self.quote_calls.append(ticker)
+        if ticker in self._failing_quote_tickers:
+            raise MarketDataError(f"no quote for {ticker}")
+        if ticker not in self._quote_by_ticker:
+            raise MarketDataError(f"no quote configured for {ticker}")
+        return self._quote_by_ticker[ticker]
 
     def fetch_company_name(self, ticker: str) -> str:
         raise NotImplementedError
@@ -89,3 +103,57 @@ def test_refresh_stock_failure_returns_failure_and_rolls_back() -> None:
     assert failure.error == "download timeout for KO"
     db.commit.assert_not_called()
     db.rollback.assert_called_once()
+
+
+def test_refresh_stock_overlays_live_quote_for_todays_bar() -> None:
+    today_bar = _make_bar(date.today())
+    stock = Stock(id=1, ticker="AAPL", company_name="Apple Inc.")
+    db = MagicMock()
+    quote = Quote(price=Decimal("12.34"), as_of=datetime.now())
+    provider = FakeProvider(
+        history_by_ticker={"AAPL": [today_bar]},
+        failing_tickers=set(),
+        quote_by_ticker={"AAPL": quote},
+    )
+
+    with patch("stockmon.services.refresh_service.upsert_daily_prices") as mock_upsert:
+        failure = refresh_stock(db, provider, stock, days=60)
+
+    assert failure is None
+    upserted_bars = mock_upsert.call_args.args[2]
+    assert upserted_bars[-1].close == Decimal("12.34")
+    assert provider.quote_calls == ["AAPL"]
+
+
+def test_refresh_stock_falls_back_when_quote_fetch_fails() -> None:
+    today_bar = _make_bar(date.today())
+    stock = Stock(id=1, ticker="AAPL", company_name="Apple Inc.")
+    db = MagicMock()
+    provider = FakeProvider(
+        history_by_ticker={"AAPL": [today_bar]},
+        failing_tickers=set(),
+        failing_quote_tickers={"AAPL"},
+    )
+
+    with patch("stockmon.services.refresh_service.upsert_daily_prices") as mock_upsert:
+        failure = refresh_stock(db, provider, stock, days=60)
+
+    assert failure is None
+    upserted_bars = mock_upsert.call_args.args[2]
+    assert upserted_bars[-1].close == today_bar.close
+    db.commit.assert_called_once()
+
+
+def test_refresh_stock_does_not_fetch_quote_for_non_today_bar() -> None:
+    stock = Stock(id=1, ticker="AAPL", company_name="Apple Inc.")
+    db = MagicMock()
+    provider = FakeProvider(
+        history_by_ticker={"AAPL": [_make_bar(date(2026, 8, 18))]},
+        failing_tickers=set(),
+    )
+
+    with patch("stockmon.services.refresh_service.upsert_daily_prices"):
+        failure = refresh_stock(db, provider, stock, days=60)
+
+    assert failure is None
+    assert provider.quote_calls == []

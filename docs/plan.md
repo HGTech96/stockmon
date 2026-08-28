@@ -225,6 +225,41 @@ section via a nav tab or reload still resets to server default.
       (StockTable, PositionsTable) unaffected
       (see docs/planning/phase-17-screener-viewstate-persistence.md)
 
+## Phase 18 — Live intraday current price
+
+Wires the existing (previously unused) `MarketDataProvider.fetch_current_quote`
+into every refresh path so `currentPrice` reflects a live intraday quote
+during market hours instead of an artifact of when `.history()` happened to
+be called. No API contract shape changes.
+
+- [x] core/market_data.py: merge_live_quote pure function (+ tests)
+- [x] refresh_service.py: overlay_live_price, wired into refresh_stock
+      (covers dashboard refresh + add-stock-to-watchlist)
+- [x] screener_service.py: overlay_live_price wired into fetch_and_evaluate_ticker
+- [x] screener_detail_service.py: overlay_live_price wired into get_screener_stock_detail
+- [x] Tests: FakeProviders extended with fakeable fetch_current_quote across
+      all three service test files; override/fallback/no-op cases covered
+- [x] docs/api-contract.md: clarifying note under currentPrice
+      (see docs/planning/phase-18-live-current-price.md)
+
+## Phase 19 — Market status indicator
+
+Adds a clock-based NYSE market-status indicator (open / pre-market /
+after-hours / closed) next to the existing freshness timestamp, so the
+"why is today's bar missing" gap from Phase 18 is self-explanatory instead
+of looking broken. Computed purely from wall-clock time, not yfinance.
+
+- [x] core/market_hours.py: get_market_status pure function + NYSE holiday
+      set (2025-2027, needs annual top-up)
+- [x] core/freshness.py: Freshness gains market_status, computed in
+      build_freshness from the same `now` used for data freshness
+- [x] api/schemas/common.py: MetaSchema gains marketStatus/marketStatusText
+      (contract v1.12, additive on the shared meta block)
+- [x] Tests: test_market_hours.py (all states + boundaries), test_freshness.py
+      extended, route-level DASHBOARD_META_KEYS updated
+- [x] UI: MarketStatusBadge.jsx rendered alongside FreshnessBar's timestamp
+      (see docs/planning/phase-19-market-status.md)
+
 ## Phase 20 — Hard cap settings UI
 
 Builds the missing settings UI for the profit-target system (unchecked

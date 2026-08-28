@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -15,11 +15,16 @@ class FakeProvider(MarketDataProvider):
         failing_history_tickers: set[str] | None = None,
         failing_name_tickers: set[str] | None = None,
         exchange_by_ticker: dict[str, str] | None = None,
+        quote_by_ticker: dict[str, Quote] | None = None,
+        failing_quote_tickers: set[str] | None = None,
     ):
         self._history_by_ticker = history_by_ticker
         self._failing_history_tickers = failing_history_tickers or set()
         self._failing_name_tickers = failing_name_tickers or set()
         self._exchange_by_ticker = exchange_by_ticker or {}
+        self._quote_by_ticker = quote_by_ticker or {}
+        self._failing_quote_tickers = failing_quote_tickers or set()
+        self.quote_calls: list[str] = []
 
     def fetch_daily_history(self, ticker: str, days: int) -> list[DailyBar]:
         if ticker in self._failing_history_tickers:
@@ -27,7 +32,12 @@ class FakeProvider(MarketDataProvider):
         return self._history_by_ticker[ticker]
 
     def fetch_current_quote(self, ticker: str) -> Quote:
-        raise NotImplementedError
+        self.quote_calls.append(ticker)
+        if ticker in self._failing_quote_tickers:
+            raise MarketDataError(f"no quote for {ticker}")
+        if ticker not in self._quote_by_ticker:
+            raise MarketDataError(f"no quote configured for {ticker}")
+        return self._quote_by_ticker[ticker]
 
     def fetch_company_name(self, ticker: str) -> str:
         if ticker in self._failing_name_tickers:
@@ -69,6 +79,26 @@ def test_valid_ticker_returns_full_unowned_detail() -> None:
     assert detail.chart_days is not None
     assert len(detail.chart_days) == 30
     assert detail.news_links.investor_relations is None
+
+
+def test_overlays_live_quote_for_todays_bar() -> None:
+    bars = _bars(30, start=date.today() - timedelta(days=29))
+    quote = Quote(price=Decimal("55.10"), as_of=datetime.now())
+    provider = FakeProvider(history_by_ticker={"PLTR": bars}, quote_by_ticker={"PLTR": quote})
+
+    detail = get_screener_stock_detail(provider, "pltr")
+
+    assert detail.evaluation.current_price == Decimal("55.10")
+    assert provider.quote_calls == ["PLTR"]
+
+
+def test_falls_back_when_quote_fetch_fails() -> None:
+    bars = _bars(30, start=date.today() - timedelta(days=29))
+    provider = FakeProvider(history_by_ticker={"PLTR": bars}, failing_quote_tickers={"PLTR"})
+
+    detail = get_screener_stock_detail(provider, "pltr")
+
+    assert detail.evaluation.current_price == Decimal(100)
 
 
 def test_unknown_ticker_raises_unknown_ticker_error() -> None:

@@ -10,6 +10,10 @@ Base URL: `http://localhost:8000/api`
 - Every GET response carries a `meta` block (data freshness). The UI shows `dataAsOf` on every page and the stale warning when `isStale` is true. There is no `isRefreshing` server state: refresh is a synchronous POST, so "refreshing" is simply the client awaiting that request.
 - `suggestion` labels are machine enums: `"BUY" | "WAIT" | "SELL"`. The UI renders them as "POSSIBLE BUY", "WAIT", "POSSIBLE SELL".
 - Checklist items carry a stable machine `id` plus backend-written display `text` — the backend is the single source of wording, so logic and explanation can never diverge.
+- `currentPrice` (wherever it appears) reflects a live intraday quote as of
+  the last refresh when that refresh ran during market hours; otherwise it's
+  the last completed daily close. Value semantics only — the field's shape
+  never changed. See Phase 18 (`docs/planning/phase-18-live-current-price.md`).
 
 ### `meta` block (on every GET)
 
@@ -18,12 +22,16 @@ Base URL: `http://localhost:8000/api`
   "meta": {
     "dataAsOf": "2026-08-19T14:45:00-04:00",
     "isStale": false,
-    "staleMessage": null
+    "staleMessage": null,
+    "marketStatus": "open",
+    "marketStatusText": "Market Open"
   }
 }
 ```
 
 When the last refresh failed and old data is served: `"isStale": true`, `"staleMessage": "Couldn't refresh — showing the last known prices from Monday, 4:00 PM."`
+
+- `marketStatus` (v1.12): machine enum, `"open" | "pre_market" | "after_hours" | "closed_weekend" | "closed_holiday"` — computed from the current wall-clock time (NYSE regular hours, Eastern time), independent of `dataAsOf`/`isStale`. `marketStatusText` is the backend-owned display string: "Market Open", "Pre-Market Open", "After Hours", "Market Closed" (both closed variants share this text; the enum still distinguishes them).
 
 ### Suggestion object
 
@@ -710,6 +718,12 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
 - v1.11: GET /api/screener results gain `change7dPct` (nullable, same source
   as the detail pages' 7-day indicator — null on insufficient_history rows,
   matching rsi/priceVs30dAvgPct). No other changes.
+
+- v1.12: the shared `meta` block (present on every GET response) gains
+  `marketStatus` and `marketStatusText` — a clock-based NYSE market-hours
+  indicator, independent of data freshness. Additive only; every existing
+  `meta` consumer is unaffected. See Phase 19
+  (`docs/planning/phase-19-market-status.md`).
 
 - v1.13: added `DELETE /api/settings/targets/{ticker}` (clear a per-position
   profit-target override back to the default; idempotent, 404 only if the

@@ -7,7 +7,7 @@ from stockmon.db.models import Trade
 from stockmon.main import app
 from tests.conftest import make_daily_prices, make_stock
 
-DASHBOARD_META_KEYS = {"dataAsOf", "isStale", "staleMessage"}
+DASHBOARD_META_KEYS = {"dataAsOf", "isStale", "staleMessage", "marketStatus", "marketStatusText"}
 DASHBOARD_ROW_KEYS = {
     "ticker", "companyName", "currentPrice", "change1dPct", "status", "suggestion", "warning", "position",
 }

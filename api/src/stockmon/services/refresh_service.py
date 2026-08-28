@@ -1,13 +1,27 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 
 from sqlalchemy.orm import Session
 
-from stockmon.core.market_data import MarketDataError, MarketDataProvider
+from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, merge_live_quote
 from stockmon.db.daily_prices import upsert_daily_prices
 from stockmon.db.models import Stock
 
 DEFAULT_HISTORY_DAYS = 60
+
+
+def overlay_live_price(provider: MarketDataProvider, ticker: str, bars: list[DailyBar]) -> list[DailyBar]:
+    """Fetches a live quote and overlays it onto today's bar via
+    merge_live_quote, so currentPrice reflects the live price rather than
+    the last completed close. A quote-fetch hiccup falls back to the
+    unmodified bars -- valid daily history should never be discarded over it."""
+    if not bars or bars[-1].date != date.today():
+        return bars
+    try:
+        quote = provider.fetch_current_quote(ticker)
+    except MarketDataError:
+        return bars
+    return merge_live_quote(bars, quote)
 
 
 @dataclass(frozen=True)
@@ -31,6 +45,7 @@ def refresh_stock(
     call) so both paths share one implementation."""
     try:
         bars = provider.fetch_daily_history(stock.ticker, days)
+        bars = overlay_live_price(provider, stock.ticker, bars)
         upsert_daily_prices(db, stock.id, bars)
         db.commit()
         return None

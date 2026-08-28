@@ -17,6 +17,7 @@ def test_never_refreshed_is_stale_with_now_as_data_as_of() -> None:
     assert freshness.data_as_of == NOW
     assert freshness.is_stale is True
     assert freshness.stale_message == NO_DATA_MESSAGE
+    assert freshness.market_status.state == "open"  # NOW is a Wed afternoon ET
 
 
 def test_successful_refresh_is_fresh() -> None:
@@ -27,6 +28,18 @@ def test_successful_refresh_is_fresh() -> None:
     assert freshness.data_as_of == succeeded
     assert freshness.is_stale is False
     assert freshness.stale_message is None
+    assert freshness.market_status.state == "open"
+
+
+def test_market_status_reflects_now_not_data_as_of() -> None:
+    # Weekend `now`, even though the last successful refresh was a weekday --
+    # market_status must describe the current moment, not the served data.
+    saturday = datetime(2026, 8, 22, 18, 45, tzinfo=timezone.utc)
+    succeeded = datetime(2026, 8, 19, 16, 0, tzinfo=timezone.utc)
+    freshness = build_freshness(
+        now=saturday, last_attempted_at=succeeded, last_succeeded_at=succeeded, had_failures=False
+    )
+    assert freshness.market_status.state == "closed_weekend"
 
 
 def test_failed_refresh_with_prior_success_is_stale() -> None:

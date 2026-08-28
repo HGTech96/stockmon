@@ -9,7 +9,7 @@ from stockmon.core.indicators import (
 )
 from stockmon.core.market_data import MarketDataError, MarketDataProvider
 from stockmon.db.models import Stock
-from stockmon.services.refresh_service import DEFAULT_HISTORY_DAYS
+from stockmon.services.refresh_service import DEFAULT_HISTORY_DAYS, overlay_live_price
 from stockmon.services.stock_detail_service import ChartDay, StockDetail, news_links_for_ticker
 from stockmon.services.stock_service import StockEvaluation, Status, UnknownTickerError
 
@@ -35,6 +35,7 @@ def get_screener_stock_detail(provider: MarketDataProvider, ticker: str) -> Stoc
         # A resolvable ticker with no usable price data yet -- not a 422,
         # same insufficient_history state a freshly-tracked stock can be in.
         bars = []
+    bars = overlay_live_price(provider, ticker, bars)
 
     stock = Stock(ticker=ticker, company_name=company_name)
 

@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from stockmon.core.market_data import MarketDataError, MarketDataProvider
 from stockmon.core.screener import ScreenerEvaluation, evaluate_screener_bars
 from stockmon.db.models import ScreenerResult
-from stockmon.services.refresh_service import DEFAULT_HISTORY_DAYS
+from stockmon.services.refresh_service import DEFAULT_HISTORY_DAYS, overlay_live_price
 
 # api/src/stockmon/services/screener_service.py -> parents[4] = repo root
 SCREENER_STOCKS_PATH = Path(__file__).resolve().parents[4] / "screener_stocks.txt"
@@ -61,6 +61,7 @@ def fetch_and_evaluate_ticker(provider: MarketDataProvider, ticker: str) -> Scre
         bars = provider.fetch_daily_history(ticker, DEFAULT_HISTORY_DAYS)
     except MarketDataError as exc:
         return ScreenerFetchFailure(ticker=ticker, error=str(exc))
+    bars = overlay_live_price(provider, ticker, bars)
 
     try:
         company_name = provider.fetch_company_name(ticker).strip() or ticker
