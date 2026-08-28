@@ -1,12 +1,15 @@
 from datetime import date
+from decimal import Decimal
 from typing import Literal
 
 from pydantic import Field
 
 from stockmon.api.schemas.base import CamelModel, Money
 from stockmon.api.schemas.common import MetaSchema, ProfitTargetSchema, SuggestionSchema, WarningSchema
+from stockmon.core.analysis import AnalysisProgress
 from stockmon.core.indicators import Indicators
 from stockmon.services.stock_detail_service import ChartDay, NewsLinks, StockDetail
+from stockmon.services.stock_service import AnalysisView
 
 
 class ChartDaySchema(CamelModel):
@@ -69,6 +72,50 @@ class DetailPositionSchema(CamelModel):
     profit_target: ProfitTargetSchema
 
 
+class AnalysisSchema(CamelModel):
+    date: date | None
+    value: Money | None
+
+    @classmethod
+    def from_core(cls, view: AnalysisView) -> "AnalysisSchema":
+        return cls(date=view.date, value=view.value)
+
+
+class SetAnalysisRequest(CamelModel):
+    date: date
+    value: Decimal
+
+
+class AnalysisProgressSchema(CamelModel):
+    target_price: Money
+    progress_price: Money
+    remaining_price: Money
+    reached: bool
+
+    @classmethod
+    def from_core(cls, progress: AnalysisProgress) -> "AnalysisProgressSchema":
+        return cls(
+            target_price=progress.target_price,
+            progress_price=progress.progress_price,
+            remaining_price=progress.remaining_price,
+            reached=progress.reached,
+        )
+
+
+class DetailAnalysisSchema(CamelModel):
+    date: date | None
+    value: Money | None
+    progress: AnalysisProgressSchema | None
+
+    @classmethod
+    def from_core(cls, view: AnalysisView, progress: AnalysisProgress | None) -> "DetailAnalysisSchema":
+        return cls(
+            date=view.date,
+            value=view.value,
+            progress=AnalysisProgressSchema.from_core(progress) if progress else None,
+        )
+
+
 class NewsLinksSchema(CamelModel):
     cnn_finance: str
     yahoo_finance: str
@@ -100,6 +147,7 @@ class StockDetailResponse(CamelModel):
     chart: ChartSchema | None
     indicators: IndicatorsSchema | None
     position: DetailPositionSchema | None
+    analysis: DetailAnalysisSchema | None
     news_links: NewsLinksSchema
 
     @classmethod
@@ -144,5 +192,6 @@ class StockDetailResponse(CamelModel):
             chart=chart,
             indicators=IndicatorsSchema.from_core(evaluation.indicators) if evaluation.indicators else None,
             position=position,
+            analysis=DetailAnalysisSchema.from_core(detail.analysis, detail.analysis_progress) if detail.analysis else None,
             news_links=NewsLinksSchema.from_core(detail.news_links),
         )

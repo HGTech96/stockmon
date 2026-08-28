@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.9
+# stockmon — API Contract v1.15
 
 Base URL: `http://localhost:8000/api`
 
@@ -165,6 +165,11 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
     "profitLossPct": 6.3,
     "profitTarget": { "targetDollars": 150.00, "progressDollars": 111.20, "remainingDollars": 38.80, "reached": false }
   },
+  "analysis": {
+    "date": "2026-08-20",
+    "value": 210.00,
+    "progress": { "targetPrice": 210.00, "progressPrice": 187.42, "remainingPrice": 22.58, "reached": false }
+  },
   "newsLinks": {
     "cnnFinance": "https://edition.cnn.com/markets/stocks/AAPL",
     "yahooFinance": "https://finance.yahoo.com/quote/AAPL",
@@ -178,6 +183,7 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
 - `chart.userAvgPurchasePrice` is `null` when the stock isn't owned (no dashed line).
 - **Insufficient history:** `status: "insufficient_history"`, `suggestion: null`, `indicators: null`, `chart: null`. Extra fields for the UI message: `daysOfHistoryAvailable` (e.g. 14), `daysOfHistoryRequired` (30), `tradingDaysUntilReady` (16). `newsLinks` still present.
 - `position` is `null` when not owned.
+- `analysis` is `null` when no analysis has been recorded for this stock; present regardless of ownership. `analysis.progress` is `null` when `currentPrice` isn't known yet (e.g. never refreshed) — same capped/uncapped shape as `profitTarget` (see `## 7. Analysis`).
 - `investorRelations` may be `null` (stored per stock in the `stocks` table; optional).
 - 404 for a ticker not on the watchlist.
 
@@ -289,8 +295,45 @@ Response `200`:
 { "targetDollars": 150.00 }
 ```
 
+`DELETE /api/settings/targets/{ticker}` (v1.13)
+  → 204 (removes the per-position override if one exists; no-op — still
+        204 — if the ticker has no override set)
+  → 404 { "error": "..." } if ticker not on watchlist
+
 - Effective target for a position = per-position override if set, else the default.
 - (v1.1 candidate: expose the checklist thresholds — RSI cutoff, %-from-low, sharp-move limits — here too, so they're tunable without code changes.)
+
+## 7. Analysis (per-stock note)
+
+A personal date + dollar-value note per watchlist stock, independent of
+ownership. Nullable, exactly one per stock, purely informational — no effect
+on suggestion logic. Shown as the `analysis` block on
+`GET /api/stocks/{ticker}` (see section 2), which also carries a computed
+`progress` sub-block (`targetPrice`/`progressPrice`/`remainingPrice`/
+`reached`) comparing `currentPrice` against the analysis value — same
+capped-progress-bar shape as `profitTarget`, `null` when `currentPrice`
+isn't known yet. `progress` is NOT present on the `PUT`/`DELETE` responses
+below (those return just `date`/`value`); the UI re-fetches the detail
+endpoint to see it, same as the hard-cap flow.
+
+`PUT /api/stocks/{ticker}/analysis`
+
+```json
+{ "date": "2026-08-20", "value": 210.00 }
+```
+
+Response `200` — the updated block:
+
+```json
+{ "date": "2026-08-20", "value": 210.00 }
+```
+
+- Overwrites any existing value for that ticker.
+- 404 for a ticker not on the watchlist.
+
+`DELETE /api/stocks/{ticker}/analysis`
+
+- Clears the analysis back to `null`. `204`. 404 for a ticker not on the watchlist.
 
 
 
@@ -667,3 +710,25 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
 - v1.11: GET /api/screener results gain `change7dPct` (nullable, same source
   as the detail pages' 7-day indicator — null on insufficient_history rows,
   matching rsi/priceVs30dAvgPct). No other changes.
+
+- v1.13: added `DELETE /api/settings/targets/{ticker}` (clear a per-position
+  profit-target override back to the default; idempotent, 404 only if the
+  ticker isn't on the watchlist). No changes to existing settings endpoints
+  or evaluation rules — this is the UI-facing "hard cap" feature (display
+  wording only; the wire field names `targetDollars`/`profitTarget` are
+  unchanged). See Phase 20 (`docs/planning/phase-20-hard-cap-settings.md`).
+
+- v1.14: added a per-stock `analysis` note (date + dollar value, nullable,
+  one per stock, independent of ownership) — `analysis` block on
+  `GET /api/stocks/{ticker}` (also reused as-is on
+  `GET /api/screener/{ticker}/detail`, always `null` there since screener
+  tickers aren't on the watchlist), plus
+  `PUT`/`DELETE /api/stocks/{ticker}/analysis`. Purely informational, no
+  effect on suggestion logic. See Phase 21
+  (`docs/planning/phase-21-stock-analysis.md`).
+
+- v1.15: `analysis` gains a computed `progress` sub-block (`targetPrice`/
+  `progressPrice`/`remainingPrice`/`reached`, `null` when `currentPrice`
+  isn't known) comparing the current price against the analyzed value —
+  same shape/capping rule as `position.profitTarget`. Additive; PUT/DELETE
+  response shapes unchanged. See Phase 21.

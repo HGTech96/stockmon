@@ -8,7 +8,7 @@ from stockmon.main import app
 DETAIL_TOP_KEYS = {
     "meta", "ticker", "companyName", "currentPrice", "change1dPct", "status",
     "daysOfHistoryAvailable", "daysOfHistoryRequired", "tradingDaysUntilReady",
-    "suggestion", "warning", "chart", "indicators", "position", "newsLinks",
+    "suggestion", "warning", "chart", "indicators", "position", "analysis", "newsLinks",
 }
 
 
@@ -73,6 +73,7 @@ def test_valid_unowned_ticker_returns_full_shape(client) -> None:
     assert body["status"] == "ok"
     assert body["suggestion"]["type"] == "entry"
     assert body["position"] is None
+    assert body["analysis"] is None
     assert body["chart"]["userAvgPurchasePrice"] is None
     assert body["newsLinks"]["investorRelations"] is None
 

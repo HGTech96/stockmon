@@ -90,5 +90,7 @@ def get_screener_stock_detail(provider: MarketDataProvider, ticker: str) -> Stoc
         user_avg_purchase_price=None,
         profit_target=None,
         effective_target_dollars=Decimal(0),  # unused: no position, so no profit_target is ever built
+        analysis=None,  # screener tickers aren't on the watchlist, never have a stored analysis
+        analysis_progress=None,
         news_links=news_links_for_ticker(ticker, None, provider.fetch_exchange(ticker)),
     )

@@ -11,6 +11,7 @@ import { WarningBanner } from "./WarningBanner";
 import { InsufficientHistoryPanel } from "./InsufficientHistoryPanel";
 import { IndicatorsPanel } from "./IndicatorsPanel";
 import { PositionCard } from "./PositionCard";
+import { AnalysisCard } from "./AnalysisCard";
 import { NewsLinksPanel } from "./NewsLinksPanel";
 
 function BackLink() {
@@ -92,9 +93,14 @@ export function StockDetailPage() {
               <span>Not enough price history yet to draw a chart.</span>
             </div>
           </Panel>
-          <Panel title="News & further reading">
-            <NewsLinksPanel newsLinks={data.newsLinks} />
-          </Panel>
+          <div className="flex flex-col gap-4">
+            <Panel title="My analysis">
+              <AnalysisCard ticker={data.ticker} analysis={data.analysis} />
+            </Panel>
+            <Panel title="News & further reading">
+              <NewsLinksPanel newsLinks={data.newsLinks} />
+            </Panel>
+          </div>
         </div>
       </div>
     );
@@ -130,6 +136,9 @@ export function StockDetailPage() {
               <PositionCard ticker={data.ticker} position={data.position} />
             </Panel>
           )}
+          <Panel title="My analysis">
+            <AnalysisCard ticker={data.ticker} analysis={data.analysis} />
+          </Panel>
           <Panel title="News & further reading">
             <NewsLinksPanel newsLinks={data.newsLinks} />
           </Panel>

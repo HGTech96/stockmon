@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import date
 from decimal import Decimal
 from typing import Literal
 
@@ -41,6 +42,12 @@ class StockAlreadyOnWatchlistError(Exception):
 class AddStockResult:
     stock: Stock
     history_fetched: bool
+
+
+@dataclass(frozen=True)
+class AnalysisView:
+    date: date | None
+    value: Decimal | None
 
 
 @dataclass(frozen=True)
@@ -180,3 +187,22 @@ def add_stock_to_watchlist(db: Session, provider: MarketDataProvider, ticker: st
 
     failure = refresh_stock(db, provider, stock)
     return AddStockResult(stock=stock, history_fetched=failure is None)
+
+
+def set_analysis(db: Session, ticker: str, analysis_date: date, value: Decimal) -> AnalysisView:
+    stock = db.query(Stock).filter(Stock.ticker == ticker).first()
+    if stock is None:
+        raise StockNotFoundError(ticker)
+    stock.analysis_date = analysis_date
+    stock.analysis_value = value
+    db.commit()
+    return AnalysisView(date=stock.analysis_date, value=stock.analysis_value)
+
+
+def clear_analysis(db: Session, ticker: str) -> None:
+    stock = db.query(Stock).filter(Stock.ticker == ticker).first()
+    if stock is None:
+        raise StockNotFoundError(ticker)
+    stock.analysis_date = None
+    stock.analysis_value = None
+    db.commit()

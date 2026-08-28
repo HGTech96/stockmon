@@ -243,3 +243,24 @@ override can be cleared back to the default (previously only settable).
       PositionsTable, EmptyState (display text only — targetDollars/
       profitTarget field names unchanged)
       (see docs/planning/phase-20-hard-cap-settings.md)
+
+## Phase 21 — Per-stock analysis note
+
+Adds a personal analysis record per watchlist stock: a date and a dollar
+value from the user's own research. Nullable, one per stock, independent of
+ownership — shown alongside (not gated by) the position card. Purely
+informational, no effect on suggestion logic.
+
+- [x] Backend: `stocks.analysis_date`/`analysis_value` columns (migration),
+      `set_analysis`/`clear_analysis` in `stock_service.py`,
+      `PUT`/`DELETE /api/stocks/{ticker}/analysis` (contract v1.14)
+- [x] `analysis` threaded through `StockDetail`/`StockDetailResponse` and
+      the screener live-detail endpoint (always `null` there)
+- [x] Tests: service, detail-service, and route coverage (set/overwrite/
+      clear/unknown-ticker)
+- [x] UI: `AnalysisCard.jsx` + `AnalysisModal.jsx` on the stock detail page,
+      shown for owned and unowned stocks alike
+- [x] "Progress to analysis" bar (mirrors the hard-cap bar): new
+      `core/analysis.py` pure function compares `currentPrice` to the
+      analysis value; hidden when there's no analysis or no current price
+      (see docs/planning/phase-21-stock-analysis.md)

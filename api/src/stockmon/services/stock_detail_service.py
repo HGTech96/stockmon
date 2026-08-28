@@ -4,11 +4,17 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from stockmon.core.analysis import AnalysisProgress, evaluate_analysis_progress
 from stockmon.core.indicators import MIN_HISTORY_DAYS
 from stockmon.core.position import ProfitTargetProgress, evaluate_profit_target
 from stockmon.db.models import Stock
 from stockmon.services.settings_service import get_effective_target
-from stockmon.services.stock_service import StockEvaluation, StockNotFoundError, evaluate_stock_snapshot
+from stockmon.services.stock_service import (
+    AnalysisView,
+    StockEvaluation,
+    StockNotFoundError,
+    evaluate_stock_snapshot,
+)
 
 
 @dataclass(frozen=True)
@@ -36,6 +42,8 @@ class StockDetail:
     user_avg_purchase_price: Decimal | None
     profit_target: ProfitTargetProgress | None
     effective_target_dollars: Decimal
+    analysis: AnalysisView | None
+    analysis_progress: AnalysisProgress | None
     news_links: NewsLinks
 
 
@@ -80,6 +88,14 @@ def get_stock_detail(db: Session, ticker: str) -> StockDetail:
     if evaluation.position_value is not None:
         profit_target = evaluate_profit_target(evaluation.position_value.profit_loss, target)
 
+    analysis: AnalysisView | None = None
+    analysis_progress: AnalysisProgress | None = None
+    if stock.analysis_date is not None:
+        analysis = AnalysisView(date=stock.analysis_date, value=stock.analysis_value)
+        if evaluation.current_price is not None:
+            assert stock.analysis_value is not None
+            analysis_progress = evaluate_analysis_progress(evaluation.current_price, stock.analysis_value)
+
     return StockDetail(
         evaluation=evaluation,
         days_required=MIN_HISTORY_DAYS,
@@ -89,5 +105,7 @@ def get_stock_detail(db: Session, ticker: str) -> StockDetail:
         user_avg_purchase_price=evaluation.position.avg_purchase_price if evaluation.position else None,
         profit_target=profit_target,
         effective_target_dollars=target,
+        analysis=analysis,
+        analysis_progress=analysis_progress,
         news_links=news_links_for_ticker(stock.ticker, stock.investor_relations_url, stock.exchange),
     )

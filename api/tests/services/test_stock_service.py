@@ -8,9 +8,12 @@ from stockmon.core.position import TradeEvent, derive_position
 from stockmon.db.models import DailyPrice, Stock, Trade
 from stockmon.services.stock_service import (
     StockAlreadyOnWatchlistError,
+    StockNotFoundError,
     UnknownTickerError,
     add_stock_to_watchlist,
+    clear_analysis,
     evaluate_stock_snapshot,
+    set_analysis,
 )
 from tests.conftest import make_daily_prices, make_stock
 
@@ -220,3 +223,55 @@ def test_add_stock_duplicate_check_is_case_insensitive(db) -> None:
 
 def _load_bars_for(db, stock) -> list:
     return db.query(DailyPrice).filter(DailyPrice.stock_id == stock.id).all()
+
+
+def test_set_analysis_stores_date_and_value(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+
+    view = set_analysis(db, "AAPL", date(2026, 8, 20), Decimal("210.00"))
+
+    assert view.date == date(2026, 8, 20)
+    assert view.value == Decimal("210.00")
+    stored = db.query(Stock).filter(Stock.ticker == "AAPL").first()
+    assert stored.analysis_date == date(2026, 8, 20)
+    assert stored.analysis_value == Decimal("210.00")
+
+
+def test_set_analysis_overwrites_existing_value(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    set_analysis(db, "AAPL", date(2026, 8, 20), Decimal("210.00"))
+
+    view = set_analysis(db, "AAPL", date(2026, 8, 25), Decimal("225.50"))
+
+    assert view.date == date(2026, 8, 25)
+    assert view.value == Decimal("225.50")
+
+
+def test_set_analysis_unknown_ticker_raises(db) -> None:
+    with pytest.raises(StockNotFoundError):
+        set_analysis(db, "ZZZZ", date(2026, 8, 20), Decimal("210.00"))
+
+
+def test_clear_analysis_resets_to_null(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    set_analysis(db, "AAPL", date(2026, 8, 20), Decimal("210.00"))
+
+    clear_analysis(db, "AAPL")
+
+    stored = db.query(Stock).filter(Stock.ticker == "AAPL").first()
+    assert stored.analysis_date is None
+    assert stored.analysis_value is None
+
+
+def test_clear_analysis_with_no_existing_value_is_a_no_op(db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+
+    clear_analysis(db, "AAPL")  # should not raise
+
+    stored = db.query(Stock).filter(Stock.ticker == "AAPL").first()
+    assert stored.analysis_date is None
+
+
+def test_clear_analysis_unknown_ticker_raises(db) -> None:
+    with pytest.raises(StockNotFoundError):
+        clear_analysis(db, "ZZZZ")

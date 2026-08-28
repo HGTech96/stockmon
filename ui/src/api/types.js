@@ -129,6 +129,21 @@
  */
 
 /**
+ * @typedef {Object} AnalysisProgress
+ * @property {number} targetPrice
+ * @property {number} progressPrice
+ * @property {number} remainingPrice
+ * @property {boolean} reached
+ */
+
+/**
+ * @typedef {Object} Analysis
+ * @property {string|null} date - YYYY-MM-DD
+ * @property {number|null} value
+ * @property {AnalysisProgress|null} progress - null when currentPrice isn't known yet
+ */
+
+/**
  * @typedef {Object} NewsLinks
  * @property {string} cnnFinance
  * @property {string} yahooFinance
@@ -152,6 +167,7 @@
  * @property {ChartData|null} chart
  * @property {Indicators|null} indicators
  * @property {Position|null} position
+ * @property {Analysis|null} analysis
  * @property {NewsLinks} newsLinks
  */
 

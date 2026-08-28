@@ -5,13 +5,13 @@ from stockmon.api.dependencies import get_market_data_provider
 from stockmon.api.schemas.common import MetaSchema
 from stockmon.api.schemas.dashboard import DashboardResponse
 from stockmon.api.schemas.stock import AddStockRequest, AddStockResponse
-from stockmon.api.schemas.stock_detail import StockDetailResponse
+from stockmon.api.schemas.stock_detail import AnalysisSchema, SetAnalysisRequest, StockDetailResponse
 from stockmon.core.market_data import MarketDataProvider
 from stockmon.db.session import get_db
 from stockmon.services.dashboard_service import build_dashboard
 from stockmon.services.freshness_service import get_freshness
 from stockmon.services.stock_detail_service import get_stock_detail
-from stockmon.services.stock_service import add_stock_to_watchlist
+from stockmon.services.stock_service import add_stock_to_watchlist, clear_analysis, set_analysis
 
 router = APIRouter()
 
@@ -38,3 +38,13 @@ def get_stock(ticker: str, db: Session = Depends(get_db)) -> StockDetailResponse
     meta = MetaSchema.from_core(get_freshness(db))
     detail = get_stock_detail(db, ticker)
     return StockDetailResponse.from_core(meta, detail)
+
+
+@router.put("/api/stocks/{ticker}/analysis", response_model=AnalysisSchema)
+def set_analysis_route(ticker: str, body: SetAnalysisRequest, db: Session = Depends(get_db)) -> AnalysisSchema:
+    return AnalysisSchema.from_core(set_analysis(db, ticker, body.date, body.value))
+
+
+@router.delete("/api/stocks/{ticker}/analysis", status_code=204)
+def clear_analysis_route(ticker: str, db: Session = Depends(get_db)) -> None:
+    clear_analysis(db, ticker)

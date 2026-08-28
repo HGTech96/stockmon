@@ -16,7 +16,7 @@ DASHBOARD_TOP_KEYS = {"meta", "summary", "money", "stocks"}
 DETAIL_TOP_KEYS = {
     "meta", "ticker", "companyName", "currentPrice", "change1dPct", "status",
     "daysOfHistoryAvailable", "daysOfHistoryRequired", "tradingDaysUntilReady",
-    "suggestion", "warning", "chart", "indicators", "position", "newsLinks",
+    "suggestion", "warning", "chart", "indicators", "position", "analysis", "newsLinks",
 }
 SUGGESTION_KEYS = {"label", "type", "metCount", "totalCount", "checklist", "note"}
 CHECKLIST_ITEM_KEYS = {"id", "text", "passed"}
@@ -130,6 +130,7 @@ def test_detail_ok_status_full_shape(client, db) -> None:
     assert len(body["chart"]["days"]) == 30
     assert body["chart"]["userAvgPurchasePrice"] is None
     assert body["position"] is None
+    assert body["analysis"] is None
     assert set(body["newsLinks"].keys()) == NEWS_LINKS_KEYS
     assert body["newsLinks"]["investorRelations"] == "https://investor.apple.com"
     assert body["newsLinks"]["yahooFinance"] == "https://finance.yahoo.com/quote/AAPL"
@@ -165,6 +166,78 @@ def test_detail_unknown_ticker_is_404(client) -> None:
     r = client.get("/api/stocks/ZZZZ")
     assert r.status_code == 404
     assert set(r.json().keys()) == {"error"}
+
+
+def test_put_analysis_sets_value_and_returns_it(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+
+    r = client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
+
+    assert r.status_code == 200
+    assert r.json() == {"date": "2026-08-20", "value": 210.0}
+
+    # No price history yet -- progress can't be computed.
+    detail = client.get("/api/stocks/AAPL").json()
+    assert detail["analysis"] == {"date": "2026-08-20", "value": 210.0, "progress": None}
+
+
+def test_analysis_progress_below_target(client, db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.")
+    make_daily_prices(db, stock, ["100.00"] * 29 + ["90.00"])
+
+    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 120.00})
+
+    detail = client.get("/api/stocks/AAPL").json()
+    assert detail["analysis"] == {
+        "date": "2026-08-20",
+        "value": 120.0,
+        "progress": {"targetPrice": 120.0, "progressPrice": 90.0, "remainingPrice": 30.0, "reached": False},
+    }
+
+
+def test_analysis_progress_reached_when_price_at_or_above_target(client, db) -> None:
+    stock = make_stock(db, "AAPL", "Apple Inc.")
+    make_daily_prices(db, stock, ["100.00"] * 29 + ["150.00"])
+
+    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 120.00})
+
+    detail = client.get("/api/stocks/AAPL").json()
+    assert detail["analysis"]["progress"] == {
+        "targetPrice": 120.0,
+        "progressPrice": 120.0,  # capped at target for a 0-100% bar
+        "remainingPrice": 0.0,
+        "reached": True,
+    }
+
+
+def test_put_analysis_overwrites_existing_value(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
+
+    r = client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-25", "value": 225.50})
+
+    assert r.json() == {"date": "2026-08-25", "value": 225.5}
+
+
+def test_put_analysis_unknown_ticker_is_404(client) -> None:
+    r = client.put("/api/stocks/ZZZZ/analysis", json={"date": "2026-08-20", "value": 210.00})
+    assert r.status_code == 404
+
+
+def test_delete_analysis_clears_value(client, db) -> None:
+    make_stock(db, "AAPL", "Apple Inc.")
+    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
+
+    r = client.delete("/api/stocks/AAPL/analysis")
+
+    assert r.status_code == 204
+    detail = client.get("/api/stocks/AAPL").json()
+    assert detail["analysis"] is None
+
+
+def test_delete_analysis_unknown_ticker_is_404(client) -> None:
+    r = client.delete("/api/stocks/ZZZZ/analysis")
+    assert r.status_code == 404
 
 
 class FakeProvider(MarketDataProvider):
