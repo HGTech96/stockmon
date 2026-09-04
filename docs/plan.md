@@ -321,3 +321,30 @@ animation only.
 - [x] Page-level crossfade (in `AppShell.jsx`, wrapping `<Outlet/>`),
       reduced-motion audit, 375px/1440px check per page
       (see docs/planning/phase-22-design-reskin.md)
+
+## Phase 23 — Multi-user accounts
+
+Turns stockmon from a single-implicit-user app into one with real,
+admin-created accounts (session-cookie login, no self-service signup,
+no OAuth/roles). Splits the data model so each user has their own
+watchlist, trades, cash ledger, hard-cap settings, and analysis notes,
+while market data (ticker + price history) stays shared across everyone
+tracking that ticker. The screener stays global/shared, unauthenticated,
+per its own "separate subsystem" framing. `CLAUDE.md` amended accordingly.
+
+### 23a Auth foundation
+- [x] `users`/`sessions` tables, PBKDF2 password hashing (stdlib, no new
+      dependency), `auth_service.py`, `get_current_user` dependency
+- [x] `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`
+      (contract v1.16); `scripts/create_user.py` for admin account creation
+### 23b Data isolation
+- [x] `stocks` split into shared `tickers`/`daily_prices` + new per-user
+      `watchlist_entries`; `cash_events`/`settings`/`refresh_status`
+      scoped by `user_id`; every route/service takes the logged-in user
+- [x] Migration backfilled all pre-existing data onto the first real
+      account (contract v1.17); cross-user isolation tests added throughout
+### 23c Frontend auth
+- [x] Login page, `useAuth` context, `RequireAuth` route guard, header
+      user menu with real logout — ported from a design mock (adapted:
+      username not email login, illustrative-only login hero data)
+      (see docs/planning/phase-23-multi-user-accounts.md)

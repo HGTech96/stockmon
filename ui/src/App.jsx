@@ -1,6 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
+import { RequireAuth } from "./components/layout/RequireAuth";
 import { ScreenerSection } from "./components/layout/ScreenerSection";
+import { LoginPage } from "./pages/login/LoginPage";
 import { DashboardPage } from "./pages/dashboard/DashboardPage";
 import { StockDetailPage } from "./pages/stock-detail/StockDetailPage";
 import { PortfolioPage } from "./pages/portfolio/PortfolioPage";
@@ -12,7 +14,14 @@ import { SettingsPage } from "./pages/settings/SettingsPage";
 export function App() {
   return (
     <Routes>
-      <Route element={<AppShell />}>
+      <Route path="login" element={<LoginPage />} />
+      <Route
+        element={
+          <RequireAuth>
+            <AppShell />
+          </RequireAuth>
+        }
+      >
         <Route index element={<DashboardPage />} />
         <Route path="stocks/:ticker" element={<StockDetailPage />} />
         <Route path="portfolio" element={<PortfolioPage />} />

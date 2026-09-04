@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { NavTabs } from "./NavTabs";
 import { FreshnessBar } from "./FreshnessBar";
+import { UserMenu } from "./UserMenu";
 import { useDataRefresh } from "../../hooks/useDataRefresh";
+import { useAuth } from "../../hooks/useAuth";
 
 /**
  * Top nav + freshness indicator + (when stale) the full-width stale
@@ -15,6 +17,8 @@ import { useDataRefresh } from "../../hooks/useDataRefresh";
 export function AppShell() {
   const [meta, setMeta] = useState(undefined);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
   useDataRefresh();
 
   // Crossfade key: collapse /screener and /screener/:ticker to one key so
@@ -32,8 +36,21 @@ export function AppShell() {
           <img src="/full-logo.svg" alt="stockmon" className="h-11 w-auto" />
         </div>
         <NavTabs />
-        <div className="flex items-center gap-2.5 whitespace-nowrap">
-          <FreshnessBar meta={meta} />
+        <div className="flex items-center gap-3 whitespace-nowrap sm:gap-4">
+          <div className="hidden items-center gap-2.5 sm:flex">
+            <FreshnessBar meta={meta} />
+          </div>
+          <div className="hidden h-5 w-px bg-border sm:block" aria-hidden="true" />
+          {user && (
+            <UserMenu
+              user={user}
+              onLogout={async () => {
+                await logout();
+                navigate("/login", { replace: true });
+              }}
+              onAccountSettings={() => navigate("/settings")}
+            />
+          )}
         </div>
       </header>
 

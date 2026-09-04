@@ -1,4 +1,4 @@
-# Phase 23 — Multi-user accounts
+# Phase 23 — Multi-user accounts ✅ 23a/23b/23c all done
 
 ## ✅ CLAUDE.md updated
 
@@ -185,21 +185,60 @@ NOT invent a user or guess a password. Rollout order:
 - [x] `docs/api-contract.md` v1.17: every endpoint but the screener now
       requires auth and is scoped per-user; no response shape changes
 
-### 23c — Frontend auth
-- [ ] `ui/src/api/auth.js` (login/logout/me)
-- [ ] `ui/src/api/client.js`: `credentials: "include"` on every request;
-      on a `401`, let it propagate so the auth layer can redirect
-- [ ] `AuthContext` (justified exception to "no context unless
-      unavoidable" — this is the unavoidable case) + `useAuth` hook,
-      wraps `App.jsx`
-- [ ] `LoginPage.jsx` (username/password form, inline 401 error) — no
-      register page (admin-created accounts)
-- [ ] `ProtectedRoute` wrapper around the existing route tree; redirect to
-      `/login` when `me` fails
-- [ ] Logout action in `AppShell`/`NavTabs`
-- [ ] Manual verification: two accounts, confirm each sees only their own
-      watchlist/portfolio/cash/settings/analysis; confirm hard-cap and
-      analysis-progress bars reflect the logged-in user's own data
+### 23c — Frontend auth ✅ done
+Ported from a design mock (`claude-designer/work/stockmon`: `LoginPage`,
+`LiveMarketPanel`, `MiniSparkline`, `UserMenu`, the `AppShell` header user
+block) rather than built from scratch — adapted from TSX/local-state to
+this app's JSX/react-router/real-API style.
+
+- [x] `ui/src/api/auth.js` (login/logout/me) + `User` typedef in `types.js`
+- [x] `ui/src/api/client.js`: `credentials: "include"` on every request;
+      a `401` response now calls an app-wide `onUnauthorized` handler
+      (registered by `useAuth`) so a session dying mid-use logs the UI out
+      immediately, not just on the next manual navigation
+- [x] `useAuth.jsx` (the one sanctioned context) — `AuthProvider` +
+      `useAuth`, wraps `App` in `main.jsx`; checks `GET /api/auth/me` on
+      mount
+- [x] `LoginPage.jsx` (username/password — the mock used email, but the
+      real API only supports username login) with inline error display
+      from the real `401` message; no register page (admin-created
+      accounts). Ported `LiveMarketPanel`/`MiniSparkline` hero panel as
+      static, clearly-labeled-illustrative data (`illustrativeMarketData.js`)
+      since there's no session yet to show a real watchlist with. Added
+      `gsap`/`@gsap/react` (new deps, needed for `MiniSparkline`'s exact
+      draw-in animation) and ported `useTweenedNumber.js`
+- [x] `RequireAuth.jsx` route guard wrapping the `AppShell` route in
+      `App.jsx`; new unguarded `/login` route
+- [x] `UserMenu.jsx` wired into `AppShell.jsx` after `FreshnessBar`; real
+      logout (`POST /api/auth/logout` + redirect) and "Account settings"
+      (navigates to the existing `/settings` route) — initials computed
+      from `username` (no separate display-name field in the real `User`)
+- [x] Verified live in-browser (not just build/lint/test): wrong-password
+      shows the real API's error message; correct login redirects to `/`
+      with that user's own (empty) watchlist rendered — confirms 23b's
+      per-user isolation end to end through the UI, not just the API;
+      user-menu dropdown, logout, and the `/settings` direct-navigation
+      redirect-when-logged-out all work
+- [x] `npm run build` / `npm run lint` / `npm test` all clean (313 → still
+      44 vitest cases, no new ones needed here)
+
+**Known pre-existing issue, not introduced by this port:** `MiniSparkline`'s
+GSAP stroke-dashoffset draw-in never actually animates — verified the
+identical stuck-at-full-dashoffset behavior in the ORIGINAL, unmodified
+design mock too (ran it standalone). The sparkline area is present but
+visually empty/very faint as a result. Ported "exactly" per instructions,
+bug included; flagged rather than silently patched since fixing the
+upstream animation timing wasn't asked for.
+
+**Adaptations made without asking (flagging here):**
+- Login field is "Username" not "Email" (real backend has no email login)
+- "Forgot password" reveal copy changed from the mock's fake "would be
+  emailed" promise (no reset flow exists) to an honest "ask whoever set up
+  your account" message — kept the interactive reveal, changed only the
+  claim
+- "Remember me" checkbox kept for visual fidelity but is inert (session
+  length is a fixed 30-day cookie either way, no shorter-session option
+  exists to toggle to)
 
 ## Resolved decisions
 

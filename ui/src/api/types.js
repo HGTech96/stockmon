@@ -349,4 +349,11 @@
  * @property {string} runAt
  */
 
+/**
+ * @typedef {Object} User
+ * @property {number} id
+ * @property {string} username
+ * @property {string|null} email
+ */
+
 export {};
