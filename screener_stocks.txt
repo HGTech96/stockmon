@@ -146,11 +146,3 @@ ECL
 MP
 ALOY
 USAR
-
-
-Phase 23c: frontend auth
-
- Adds a login page, route guard, and header user menu (ported and
- adapted from a design mock) wired to the session-cookie backend from
- 23a/23b — the UI now requires login and each account sees only its
- own watchlist/portfolio, closing out per-user accounts (Phase 23)

@@ -17,6 +17,7 @@ alembic = "^1.13"
 psycopg = { extras = ["binary"], version = "^3.2" }
 pydantic-settings = "^2.6"
 yfinance = "^0.2"
+curl-cffi = "^0.16"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3"
