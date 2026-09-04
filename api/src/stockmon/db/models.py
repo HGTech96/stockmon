@@ -19,6 +19,36 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from stockmon.db.base import Base
 
 
+class User(Base):
+    __tablename__ = "users"
+    __table_args__ = (UniqueConstraint("username", name="uq_user_username"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50))
+    email: Mapped[str | None] = mapped_column(String(255), unique=True)
+    password_hash: Mapped[str] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    sessions: Mapped[list["UserSession"]] = relationship(back_populates="user")
+
+
+class UserSession(Base):
+    """Opaque bearer token stored server-side (not a JWT) -- login creates a
+    row, logout deletes it, so revocation is just a DELETE. Fixed 30-day
+    lifetime from creation, no sliding renewal. Named UserSession (table
+    `sessions`) to avoid colliding with sqlalchemy.orm.Session, which every
+    service function uses as the DB-session type hint."""
+
+    __tablename__ = "sessions"
+
+    id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+    user: Mapped["User"] = relationship(back_populates="sessions")
+
+
 class Stock(Base):
     __tablename__ = "stocks"
 

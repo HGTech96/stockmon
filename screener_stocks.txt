@@ -1,4 +1,5 @@
 NVDA
+AAOI
 AVGO
 AMD
 MU

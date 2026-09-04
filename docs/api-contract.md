@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.15
+# stockmon — API Contract v1.16
 
 Base URL: `http://localhost:8000/api`
 
@@ -74,6 +74,42 @@ Computed once in the backend: 1-day move beyond ±5% **or** 7-day move beyond ±
 ```
 
 `null` when not triggered. `reason`: `"1d_move" | "7d_move"`. Dashboard renders it as the row icon, detail page as the orange banner — same field, no client-side re-derivation.
+
+---
+
+## Auth (v1.16)
+
+Session-cookie auth (opaque token, not a JWT). Accounts are admin-created
+via `scripts/create_user.py` — there is no self-service signup endpoint.
+A missing/invalid/expired session on a protected endpoint returns
+`401 { "error": "Not authenticated" }`.
+
+This version (23a, see Phase 23 —
+`docs/planning/phase-23-multi-user-accounts.md`) adds only the login
+mechanism itself: `/api/auth/*` below. Every other endpoint in this
+document is NOT yet gated by it and still reads/writes the single shared
+dataset — per-user data isolation on the rest of the API is 23b, a
+follow-up version bump.
+
+`POST /api/auth/login`
+
+```json
+{ "username": "alice", "password": "hunter2" }
+```
+
+→ `200`, sets an httponly `session_id` cookie (30-day fixed expiry):
+
+```json
+{ "id": 1, "username": "alice", "email": null }
+```
+
+→ `401 { "error": "Invalid username or password" }` on bad credentials.
+
+`POST /api/auth/logout` → `204`, clears the cookie. No-op (still `204`) if
+already logged out.
+
+`GET /api/auth/me` → `200`, the same user shape as login; `401` if not
+authenticated.
 
 ---
 
@@ -746,3 +782,10 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
   isn't known) comparing the current price against the analyzed value —
   same shape/capping rule as `position.profitTarget`. Additive; PUT/DELETE
   response shapes unchanged. See Phase 21.
+
+- v1.16: added session-cookie auth — `POST /api/auth/login`,
+  `POST /api/auth/logout`, `GET /api/auth/me`. Accounts are admin-created
+  (`scripts/create_user.py`), no self-service signup. This version only
+  adds the login mechanism (23a); existing endpoints don't yet require or
+  scope by it — that's 23b. See Phase 23
+  (`docs/planning/phase-23-multi-user-accounts.md`).

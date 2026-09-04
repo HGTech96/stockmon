@@ -6,8 +6,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from stockmon.api.routes import cash, portfolio, refresh, screener, settings, stocks, trades
+from stockmon.api.deps import NotAuthenticatedError
+from stockmon.api.routes import auth, cash, portfolio, refresh, screener, settings, stocks, trades
 from stockmon.config import settings as app_settings
+from stockmon.services.auth_service import InvalidCredentialsError, UsernameTakenError
 from stockmon.services.cash_service import CashNotFoundError, CashValidationError
 from stockmon.services.stock_service import StockAlreadyOnWatchlistError, StockNotFoundError, UnknownTickerError
 from stockmon.services.trade_service import TradeNotFoundError, TradeValidationError
@@ -16,9 +18,11 @@ app = FastAPI(title="stockmon")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[app_settings.ui_origin],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth.router)
 app.include_router(refresh.router)
 app.include_router(stocks.router)
 app.include_router(portfolio.router)
@@ -72,6 +76,21 @@ def handle_cash_validation_error(request: Request, exc: CashValidationError) -> 
 @app.exception_handler(CashNotFoundError)
 def handle_cash_not_found_error(request: Request, exc: CashNotFoundError) -> JSONResponse:
     return JSONResponse(status_code=404, content={"error": str(exc)})
+
+
+@app.exception_handler(NotAuthenticatedError)
+def handle_not_authenticated_error(request: Request, exc: NotAuthenticatedError) -> JSONResponse:
+    return JSONResponse(status_code=401, content={"error": str(exc)})
+
+
+@app.exception_handler(InvalidCredentialsError)
+def handle_invalid_credentials_error(request: Request, exc: InvalidCredentialsError) -> JSONResponse:
+    return JSONResponse(status_code=401, content={"error": str(exc)})
+
+
+@app.exception_handler(UsernameTakenError)
+def handle_username_taken_error(request: Request, exc: UsernameTakenError) -> JSONResponse:
+    return JSONResponse(status_code=409, content={"error": str(exc)})
 
 
 def main() -> None:

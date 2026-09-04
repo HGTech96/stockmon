@@ -1,8 +1,10 @@
 # stockmon
 
-Personal stock buy/sell decision helper. Single local user. The app suggests
-(POSSIBLE BUY / WAIT / POSSIBLE SELL) with full visible reasoning; the human
-always decides. No automated trading, no AI features, no black-box scoring.
+Personal stock buy/sell decision helper. Multiple local users, each with
+their own portfolio (accounts are admin-created, not self-service signup).
+The app suggests (POSSIBLE BUY / WAIT / POSSIBLE SELL) with full visible
+reasoning; the human always decides. No automated trading, no AI features,
+no black-box scoring.
 
 ## Planning workflow
 - Before implementing any phase, write the plan to docs/planning/phase-<N>-<name>.md
@@ -125,6 +127,8 @@ separate:
 ## Don't
 
 - Don't add features outside docs/plan.md without asking.
-- Don't add auth, Docker, websockets, caching layers, or job queues.
+- Don't add Docker, websockets, caching layers, or job queues. Auth is
+  allowed, scoped to simple session-cookie login (see Phase 23) — no
+  OAuth/SSO, no roles/permissions, no self-service signup.
 - Don't put business logic in API routes or React components.
 - Don't invent indicator formulas — RSI is standard 14-period Wilder RSI.
