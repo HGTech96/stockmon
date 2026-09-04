@@ -11,11 +11,11 @@ POSITION_KEYS = {
 }
 
 
-def test_empty_state(client, db) -> None:
+def test_empty_state(authed_client, db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
     make_stock(db, "NVDA", "NVIDIA Corporation")
 
-    r = client.get("/api/portfolio")
+    r = authed_client.get("/api/portfolio")
     assert r.status_code == 200
     body = r.json()
 
@@ -27,12 +27,12 @@ def test_empty_state(client, db) -> None:
     assert body["watchlist"] == ["AAPL", "NVDA"]
 
 
-def test_money_present_with_deposit_only_and_no_trades(client, db) -> None:
+def test_money_present_with_deposit_only_and_no_trades(authed_client, db) -> None:
     """summary/hasTrades reflect no trades, but money is a SIBLING field,
     present whenever there's any cash activity at all."""
-    client.post("/api/cash", json={"type": "deposit", "amountUsd": 250, "date": "2026-01-01"})
+    authed_client.post("/api/cash", json={"type": "deposit", "amountUsd": 250, "date": "2026-01-01"})
 
-    body = client.get("/api/portfolio").json()
+    body = authed_client.get("/api/portfolio").json()
 
     assert body["hasTrades"] is False
     assert body["summary"] is None
@@ -40,13 +40,13 @@ def test_money_present_with_deposit_only_and_no_trades(client, db) -> None:
     assert body["money"]["netDeposited"] == 250.0
 
 
-def test_open_position_shape(client, db) -> None:
+def test_open_position_shape(authed_client, db) -> None:
     stock = make_stock(db, "NVDA", "NVIDIA Corporation")
     make_daily_prices(db, stock, ["80.00"] * 29 + ["128.55"])
-    db.add(Trade(stock_id=stock.id, action="buy", shares=Decimal(25), price_per_share=Decimal("88.10"), trade_date=date(2026, 1, 1)))
+    db.add(Trade(watchlist_entry_id=stock.id, action="buy", shares=Decimal(25), price_per_share=Decimal("88.10"), trade_date=date(2026, 1, 1)))
     db.commit()
 
-    body = client.get("/api/portfolio").json()
+    body = authed_client.get("/api/portfolio").json()
 
     assert body["hasTrades"] is True
     assert len(body["positions"]) == 1
@@ -58,17 +58,17 @@ def test_open_position_shape(client, db) -> None:
     assert body["money"] is not None
 
 
-def test_closed_position_excluded(client, db) -> None:
+def test_closed_position_excluded(authed_client, db) -> None:
     stock = make_stock(db, "AAPL", "Apple Inc.")
     make_daily_prices(db, stock, ["100.00"] * 30)
     db.add_all(
         [
-            Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1)),
-            Trade(stock_id=stock.id, action="sell", shares=Decimal(10), price_per_share=Decimal(110), trade_date=date(2026, 1, 5)),
+            Trade(watchlist_entry_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1)),
+            Trade(watchlist_entry_id=stock.id, action="sell", shares=Decimal(10), price_per_share=Decimal(110), trade_date=date(2026, 1, 5)),
         ]
     )
     db.commit()
 
-    body = client.get("/api/portfolio").json()
+    body = authed_client.get("/api/portfolio").json()
     assert body["hasTrades"] is True
     assert body["positions"] == []

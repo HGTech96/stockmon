@@ -7,13 +7,12 @@ from sqlalchemy.orm import Session
 from stockmon.core.analysis import AnalysisProgress, evaluate_analysis_progress
 from stockmon.core.indicators import MIN_HISTORY_DAYS
 from stockmon.core.position import ProfitTargetProgress, evaluate_profit_target
-from stockmon.db.models import Stock
 from stockmon.services.settings_service import get_effective_target
 from stockmon.services.stock_service import (
     AnalysisView,
     StockEvaluation,
-    StockNotFoundError,
     evaluate_stock_snapshot,
+    get_watchlist_entry,
 )
 
 
@@ -64,13 +63,11 @@ def news_links_for_ticker(ticker: str, investor_relations_url: str | None, excha
     )
 
 
-def get_stock_detail(db: Session, ticker: str) -> StockDetail:
-    stock = db.query(Stock).filter(Stock.ticker == ticker).first()
-    if stock is None:
-        raise StockNotFoundError(ticker)
+def get_stock_detail(db: Session, user_id: int, ticker: str) -> StockDetail:
+    entry = get_watchlist_entry(db, user_id, ticker)
 
-    target = get_effective_target(db, stock.id)
-    evaluation = evaluate_stock_snapshot(db, stock, target)
+    target = get_effective_target(db, entry.id)
+    evaluation = evaluate_stock_snapshot(db, entry, target)
 
     chart_days: list[ChartDay] | None = None
     thirty_day_average: Decimal | None = None
@@ -90,11 +87,11 @@ def get_stock_detail(db: Session, ticker: str) -> StockDetail:
 
     analysis: AnalysisView | None = None
     analysis_progress: AnalysisProgress | None = None
-    if stock.analysis_date is not None:
-        analysis = AnalysisView(date=stock.analysis_date, value=stock.analysis_value)
+    if entry.analysis_date is not None:
+        analysis = AnalysisView(date=entry.analysis_date, value=entry.analysis_value)
         if evaluation.current_price is not None:
-            assert stock.analysis_value is not None
-            analysis_progress = evaluate_analysis_progress(evaluation.current_price, stock.analysis_value)
+            assert entry.analysis_value is not None
+            analysis_progress = evaluate_analysis_progress(evaluation.current_price, entry.analysis_value)
 
     return StockDetail(
         evaluation=evaluation,
@@ -107,5 +104,7 @@ def get_stock_detail(db: Session, ticker: str) -> StockDetail:
         effective_target_dollars=target,
         analysis=analysis,
         analysis_progress=analysis_progress,
-        news_links=news_links_for_ticker(stock.ticker, stock.investor_relations_url, stock.exchange),
+        news_links=news_links_for_ticker(
+            entry.ticker.ticker, entry.ticker.investor_relations_url, entry.ticker.exchange
+        ),
     )

@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.16
+# stockmon — API Contract v1.17
 
 Base URL: `http://localhost:8000/api`
 
@@ -84,12 +84,17 @@ via `scripts/create_user.py` — there is no self-service signup endpoint.
 A missing/invalid/expired session on a protected endpoint returns
 `401 { "error": "Not authenticated" }`.
 
-This version (23a, see Phase 23 —
-`docs/planning/phase-23-multi-user-accounts.md`) adds only the login
-mechanism itself: `/api/auth/*` below. Every other endpoint in this
-document is NOT yet gated by it and still reads/writes the single shared
-dataset — per-user data isolation on the rest of the API is 23b, a
-follow-up version bump.
+As of v1.17 (23b, see Phase 23 —
+`docs/planning/phase-23-multi-user-accounts.md`), every endpoint below
+EXCEPT the screener (`GET /api/screener`, `POST /api/screener/refresh`,
+`GET /api/screener/{ticker}/detail` — an intentionally separate, shared/
+global subsystem per CLAUDE.md) now requires a valid session cookie and
+scopes its data to the logged-in user: your own watchlist, trades, cash
+ledger, hard-cap settings, and analysis notes. A ticker's shared market
+data (price history) is unaffected — refreshing it benefits every user
+tracking that ticker. Response shapes are unchanged; the only new
+behavior is the `401` case and that two different users now see two
+different watchlists/portfolios/histories through the same endpoints.
 
 `POST /api/auth/login`
 
@@ -788,4 +793,14 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
   (`scripts/create_user.py`), no self-service signup. This version only
   adds the login mechanism (23a); existing endpoints don't yet require or
   scope by it — that's 23b. See Phase 23
+  (`docs/planning/phase-23-multi-user-accounts.md`).
+
+- v1.17: every endpoint except the screener now requires the session
+  cookie from v1.16 and scopes its reads/writes to the logged-in user
+  (watchlist, trades, cash, hard-cap settings, analysis notes). Data model
+  split `stocks` into a shared `tickers`/`daily_prices` pair (market data,
+  unchanged for everyone tracking a ticker) plus a new per-user
+  `watchlist_entries` table; `cash_events`, `settings`, and
+  `refresh_status` gained per-user scoping. No response shape changes —
+  purely a data-isolation and auth-requirement change. See Phase 23
   (`docs/planning/phase-23-multi-user-accounts.md`).

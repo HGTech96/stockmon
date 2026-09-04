@@ -153,7 +153,7 @@ class StockDetailResponse(CamelModel):
     @classmethod
     def from_core(cls, meta: MetaSchema, detail: StockDetail) -> "StockDetailResponse":
         evaluation = detail.evaluation
-        stock = evaluation.stock
+        ticker_row = evaluation.ticker
 
         chart = None
         if detail.chart_days is not None:
@@ -179,8 +179,8 @@ class StockDetailResponse(CamelModel):
 
         return cls(
             meta=meta,
-            ticker=stock.ticker,
-            company_name=stock.company_name,
+            ticker=ticker_row.ticker,
+            company_name=ticker_row.company_name,
             current_price=evaluation.current_price,
             change_1d_pct=evaluation.change_1d_pct,
             status=evaluation.status,

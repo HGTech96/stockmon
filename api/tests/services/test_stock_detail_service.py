@@ -8,19 +8,21 @@ from stockmon.db.models import Trade
 from stockmon.services.settings_service import set_position_target
 from stockmon.services.stock_detail_service import get_stock_detail
 from stockmon.services.stock_service import StockNotFoundError, set_analysis
-from tests.conftest import make_daily_prices, make_stock
+from tests.conftest import make_daily_prices, make_stock, make_user
 
 
 def test_unknown_ticker_raises_not_found(db) -> None:
+    user = make_user(db)
     with pytest.raises(StockNotFoundError):
-        get_stock_detail(db, "ZZZZ")
+        get_stock_detail(db, user.id, "ZZZZ")
 
 
 def test_ok_status_has_chart_and_indicators_no_position(db) -> None:
-    stock = make_stock(db, "AAPL", "Apple Inc.", investor_relations_url="https://investor.apple.com")
+    user = make_user(db)
+    stock = make_stock(db, "AAPL", "Apple Inc.", investor_relations_url="https://investor.apple.com", user=user)
     make_daily_prices(db, stock, ["100.00"] * 29 + ["90.00"])
 
-    detail = get_stock_detail(db, "AAPL")
+    detail = get_stock_detail(db, user.id, "AAPL")
 
     assert detail.evaluation.status == "ok"
     assert detail.chart_days is not None
@@ -36,10 +38,11 @@ def test_ok_status_has_chart_and_indicators_no_position(db) -> None:
 
 
 def test_insufficient_history_has_no_chart_but_reports_countdown(db) -> None:
-    stock = make_stock(db, "RIVN", "Rivian Automotive, Inc.")
+    user = make_user(db)
+    stock = make_stock(db, "RIVN", "Rivian Automotive, Inc.", user=user)
     make_daily_prices(db, stock, ["13.00"] * 14)
 
-    detail = get_stock_detail(db, "RIVN")
+    detail = get_stock_detail(db, user.id, "RIVN")
 
     assert detail.evaluation.status == "insufficient_history"
     assert detail.chart_days is None
@@ -50,15 +53,16 @@ def test_insufficient_history_has_no_chart_but_reports_countdown(db) -> None:
 
 
 def test_owned_position_includes_profit_target_progress(db) -> None:
-    stock = make_stock(db, "AAPL", "Apple Inc.")
+    user = make_user(db)
+    stock = make_stock(db, "AAPL", "Apple Inc.", user=user)
     make_daily_prices(db, stock, ["100.00"] * 29 + ["120.00"])
     db.add(
-        Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
+        Trade(watchlist_entry_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1))
     )
     db.commit()
-    set_position_target(db, "AAPL", Decimal("150.00"))
+    set_position_target(db, user.id, "AAPL", Decimal("150.00"))
 
-    detail = get_stock_detail(db, "AAPL")
+    detail = get_stock_detail(db, user.id, "AAPL")
 
     assert detail.user_avg_purchase_price == Decimal(100)
     assert detail.profit_target is not None
@@ -69,32 +73,36 @@ def test_owned_position_includes_profit_target_progress(db) -> None:
 
 
 def test_investor_relations_url_may_be_null(db) -> None:
-    stock = make_stock(db, "KO", "Coca-Cola Co.")
+    user = make_user(db)
+    stock = make_stock(db, "KO", "Coca-Cola Co.", user=user)
     make_daily_prices(db, stock, ["50.00"] * 30)
-    detail = get_stock_detail(db, "KO")
+    detail = get_stock_detail(db, user.id, "KO")
     assert detail.news_links.investor_relations is None
 
 
 def test_google_finance_link_includes_exchange_suffix_when_known(db) -> None:
-    stock = make_stock(db, "AAPL", "Apple Inc.", exchange="NASDAQ")
+    user = make_user(db)
+    stock = make_stock(db, "AAPL", "Apple Inc.", exchange="NASDAQ", user=user)
     make_daily_prices(db, stock, ["50.00"] * 30)
-    detail = get_stock_detail(db, "AAPL")
+    detail = get_stock_detail(db, user.id, "AAPL")
     assert detail.news_links.google_finance == "https://www.google.com/finance/quote/AAPL:NASDAQ"
 
 
 def test_google_finance_link_omits_suffix_when_exchange_unknown(db) -> None:
-    stock = make_stock(db, "KO", "Coca-Cola Co.", exchange=None)
+    user = make_user(db)
+    stock = make_stock(db, "KO", "Coca-Cola Co.", exchange=None, user=user)
     make_daily_prices(db, stock, ["50.00"] * 30)
-    detail = get_stock_detail(db, "KO")
+    detail = get_stock_detail(db, user.id, "KO")
     assert detail.news_links.google_finance == "https://www.google.com/finance/quote/KO"
 
 
 def test_analysis_included_when_set(db) -> None:
-    stock = make_stock(db, "AAPL", "Apple Inc.")
+    user = make_user(db)
+    stock = make_stock(db, "AAPL", "Apple Inc.", user=user)
     make_daily_prices(db, stock, ["100.00"] * 29 + ["90.00"])
-    set_analysis(db, "AAPL", date(2026, 8, 20), Decimal("210.00"))
+    set_analysis(db, user.id, "AAPL", date(2026, 8, 20), Decimal("210.00"))
 
-    detail = get_stock_detail(db, "AAPL")
+    detail = get_stock_detail(db, user.id, "AAPL")
 
     assert detail.analysis is not None
     assert detail.analysis.date == date(2026, 8, 20)
@@ -105,22 +113,33 @@ def test_analysis_included_when_set(db) -> None:
 
 
 def test_analysis_progress_is_none_when_current_price_unknown(db) -> None:
-    make_stock(db, "RIVN", "Rivian Automotive, Inc.")  # never refreshed, no current price
-    set_analysis(db, "RIVN", date(2026, 8, 20), Decimal("15.00"))
+    user = make_user(db)
+    make_stock(db, "RIVN", "Rivian Automotive, Inc.", user=user)  # never refreshed, no current price
+    set_analysis(db, user.id, "RIVN", date(2026, 8, 20), Decimal("15.00"))
 
-    detail = get_stock_detail(db, "RIVN")
+    detail = get_stock_detail(db, user.id, "RIVN")
 
     assert detail.analysis is not None
     assert detail.analysis_progress is None
 
 
 def test_analysis_present_regardless_of_ownership(db) -> None:
-    make_stock(db, "RIVN", "Rivian Automotive, Inc.")  # no trades, no history
-    set_analysis(db, "RIVN", date(2026, 8, 20), Decimal("15.00"))
+    user = make_user(db)
+    make_stock(db, "RIVN", "Rivian Automotive, Inc.", user=user)  # no trades, no history
+    set_analysis(db, user.id, "RIVN", date(2026, 8, 20), Decimal("15.00"))
 
-    detail = get_stock_detail(db, "RIVN")
+    detail = get_stock_detail(db, user.id, "RIVN")
 
     assert detail.evaluation.status == "insufficient_history"
     assert detail.evaluation.position is None
     assert detail.analysis is not None
     assert detail.analysis.value == Decimal("15.00")
+
+
+def test_stock_detail_of_another_users_ticker_raises_not_found(db) -> None:
+    owner = make_user(db, username="owner")
+    other = make_user(db, username="other")
+    make_stock(db, "AAPL", "Apple Inc.", user=owner)
+
+    with pytest.raises(StockNotFoundError):
+        get_stock_detail(db, other.id, "AAPL")

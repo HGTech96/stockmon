@@ -5,13 +5,13 @@ from stockmon.core.market_data import DailyBar
 from stockmon.db.models import DailyPrice
 
 
-def upsert_daily_prices(db: Session, stock_id: int, bars: list[DailyBar]) -> int:
+def upsert_daily_prices(db: Session, ticker_id: int, bars: list[DailyBar]) -> int:
     if not bars:
         return 0
 
     rows = [
         {
-            "stock_id": stock_id,
+            "ticker_id": ticker_id,
             "trade_date": bar.date,
             "open": bar.open,
             "high": bar.high,
@@ -24,7 +24,7 @@ def upsert_daily_prices(db: Session, stock_id: int, bars: list[DailyBar]) -> int
 
     stmt = pg_insert(DailyPrice).values(rows)
     stmt = stmt.on_conflict_do_update(
-        constraint="uq_daily_price_stock_date",
+        constraint="uq_daily_price_ticker_date",
         set_={
             "open": stmt.excluded.open,
             "high": stmt.excluded.high,

@@ -115,12 +115,12 @@ renames. What changes:
 Alembic migrations only create tables/columns and rename FKs — they will
 NOT invent a user or guess a password. Rollout order:
 
-1. Run `scripts/create_user.py` (new, done in 23a) to create the first
-   account interactively (username + password prompt, PBKDF2-hashed)
-2. Run a one-off backfill migration/script that assigns all pre-existing
-   `stocks`→`tickers`+`watchlist_entries`, `trades`, `cash_events`, and the
-   singleton `settings`/`refresh_status` rows to that first user's id
-3. From then on, `scripts/create_user.py` can create additional accounts
+1. [x] Ran `scripts/create_user.py` against the real dev DB to create the
+   first account (`hgtech`, id=2)
+2. [x] Ran migration `a3c7b38e1f11` — verified all 16 pre-existing tickers,
+   watchlist entries, trades, and both cash events landed on that
+   account; `settings`/`refresh_status` rows created for it
+3. From now on, `scripts/create_user.py` can create additional accounts
    with empty portfolios
 
 ## Sub-phase breakdown
@@ -145,24 +145,45 @@ NOT invent a user or guess a password. Rollout order:
 - [x] Manual smoke test against the real dev DB: migration applied, live
       login → cookie → `/me` → logout → `/me` 401, verified via curl
 
-### 23b — Data isolation
-- [ ] Migration: `stocks`→`tickers` rename, `watchlist_entries` table,
-      retarget `daily_prices`/`trades`/`profit_targets` FKs, `user_id` on
-      `cash_events`, `settings`→per-user, `refresh_status`→per-user
-      (schema-only — see rollout steps above for data backfill)
-- [ ] Backfill script per rollout steps 1–2 above
-- [ ] Every service function (`stock_service`, `stock_detail_service`,
+### 23b — Data isolation ✅ done
+- [x] Migration `a3c7b38e1f11`: `stocks`→`tickers` rename,
+      `watchlist_entries` table (data-migrated from every existing
+      ticker's analysis fields), retargeted `daily_prices`/`trades`/
+      `profit_targets` FKs, `user_id` added to `cash_events`,
+      `settings`→per-user PK, `refresh_status`→per-user PK. Requires one
+      user to exist first (raises with a clear message otherwise) and
+      assigns all pre-existing rows to that first user — matches the
+      rollout order above
+- [x] `db/models.py`: `Ticker`, `WatchlistEntry` (new); retargeted FKs on
+      `DailyPrice`/`Trade`/`ProfitTarget`; `Settings`/`RefreshStatus` keyed
+      by `user_id`; `CashEvent` gains `user_id`
+- [x] Every service function (`stock_service`, `stock_detail_service`,
       `dashboard_service`, `portfolio_service`, `trade_service`,
-      `cash_service`, `settings_service`, `refresh_service`) gains a
-      `user_id` parameter and scopes its queries by it
-- [ ] Every route in `routes/{stocks,portfolio,trades,cash,settings,
+      `cash_service`, `money_service`, `settings_service`,
+      `refresh_service`, `import_service`) gains a `user_id` parameter and
+      scopes its queries by it; `stock_service.get_watchlist_entry` is the
+      one shared ticker→this-user's-entry resolver (404 whether the
+      ticker doesn't exist or just isn't this user's)
+- [x] Every route in `routes/{stocks,portfolio,trades,cash,settings,
       refresh}.py` takes `current_user: User = Depends(get_current_user)`
-      and passes `current_user.id` through
-- [ ] `core/` unaffected — pure functions never took DB rows, this is
+      and passes `current_user.id` through. Screener routes deliberately
+      untouched (stays global/shared, unauthenticated) — its `meta`
+      freshness no longer borrows the now-per-user `refresh_status` table;
+      it has its own (`get_screener_freshness`/`get_live_freshness` in
+      `freshness_service.py`)
+- [x] `core/` unaffected — pure functions never took DB rows, this was
       entirely a services/routes/db change
-- [ ] Tests: update every existing service/route test to create a user
-      fixture and scope through it; add cross-user isolation tests (user A
-      cannot see/modify user B's stocks/trades/cash/settings)
+- [x] `scripts/import_history.py` and `scripts/seed_watchlist.py` take a
+      required `<username>` argument
+- [x] Tests: every existing service/route test updated to create a user
+      fixture and scope through it (`tests/conftest.py`: `make_user`,
+      `make_ticker`, `make_stock` now returns a `WatchlistEntry`,
+      `authed_client` fixture logs in as the default test user so most
+      route tests were otherwise unchanged); added cross-user isolation
+      tests across trades, cash, settings, stock detail, import, and the
+      dashboard route (full suite: 323 passed)
+- [x] `docs/api-contract.md` v1.17: every endpoint but the screener now
+      requires auth and is scoped per-user; no response shape changes
 
 ### 23c — Frontend auth
 - [ ] `ui/src/api/auth.js` (login/logout/me)

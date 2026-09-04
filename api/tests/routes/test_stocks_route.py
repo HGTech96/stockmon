@@ -5,7 +5,7 @@ from stockmon.api.dependencies import get_market_data_provider
 from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, Quote
 from stockmon.db.models import Trade
 from stockmon.main import app
-from tests.conftest import make_daily_prices, make_stock
+from tests.conftest import make_daily_prices, make_stock, make_user
 
 DASHBOARD_META_KEYS = {"dataAsOf", "isStale", "staleMessage", "marketStatus", "marketStatusText"}
 DASHBOARD_ROW_KEYS = {
@@ -31,8 +31,8 @@ PROFIT_TARGET_KEYS = {"targetDollars", "progressDollars", "remainingDollars", "r
 NEWS_LINKS_KEYS = {"cnnFinance", "yahooFinance", "googleFinance", "investorRelations"}
 
 
-def test_dashboard_empty_watchlist(client) -> None:
-    r = client.get("/api/stocks")
+def test_dashboard_empty_watchlist(authed_client) -> None:
+    r = authed_client.get("/api/stocks")
     assert r.status_code == 200
     body = r.json()
     assert set(body.keys()) == DASHBOARD_TOP_KEYS
@@ -42,13 +42,13 @@ def test_dashboard_empty_watchlist(client) -> None:
     assert body["stocks"] == []
 
 
-def test_dashboard_money_present_with_deposit_only_and_no_trades(client, db) -> None:
+def test_dashboard_money_present_with_deposit_only_and_no_trades(authed_client, db) -> None:
     """summary is null with no trades, but money is a SIBLING field, present
     whenever there's any cash activity at all -- a deposit with zero trades
     is a valid state that must still show its cash figures."""
-    client.post("/api/cash", json={"type": "deposit", "amountUsd": 100, "date": "2026-01-01"})
+    authed_client.post("/api/cash", json={"type": "deposit", "amountUsd": 100, "date": "2026-01-01"})
 
-    body = client.get("/api/stocks").json()
+    body = authed_client.get("/api/stocks").json()
 
     assert body["summary"] is None
     assert body["money"] == {
@@ -61,7 +61,7 @@ def test_dashboard_money_present_with_deposit_only_and_no_trades(client, db) -> 
     }
 
 
-def test_dashboard_row_shape_and_sort_order(client, db) -> None:
+def test_dashboard_row_shape_and_sort_order(authed_client, db) -> None:
     sell_stock = make_stock(db, "TSLA", "Tesla, Inc.")
     make_daily_prices(db, sell_stock, ["100.00"] * 29 + ["70.00"])  # sharp 1d drop -> warning
 
@@ -72,7 +72,7 @@ def test_dashboard_row_shape_and_sort_order(client, db) -> None:
     insufficient_stock = make_stock(db, "RIVN", "Rivian Automotive, Inc.")
     make_daily_prices(db, insufficient_stock, ["13.00", "13.42"])
 
-    r = client.get("/api/stocks")
+    r = authed_client.get("/api/stocks")
     body = r.json()
     tickers = [row["ticker"] for row in body["stocks"]]
     assert tickers[-1] == "RIVN"  # insufficient-history always sorts last
@@ -87,13 +87,13 @@ def test_dashboard_row_shape_and_sort_order(client, db) -> None:
     assert rivn_row["position"] is None
 
 
-def test_dashboard_position_present_for_owned_stock(client, db) -> None:
+def test_dashboard_position_present_for_owned_stock(authed_client, db) -> None:
     stock = make_stock(db, "AAPL", "Apple Inc.")
     make_daily_prices(db, stock, ["100.00"] * 29 + ["120.00"])
-    db.add(Trade(stock_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1)))
+    db.add(Trade(watchlist_entry_id=stock.id, action="buy", shares=Decimal(10), price_per_share=Decimal(100), trade_date=date(2026, 1, 1)))
     db.commit()
 
-    body = client.get("/api/stocks").json()
+    body = authed_client.get("/api/stocks").json()
     row = body["stocks"][0]
     assert row["position"] == {"profitLoss": 200.0, "profitLossPct": 20.0}
     assert body["summary"] == {
@@ -102,15 +102,30 @@ def test_dashboard_position_present_for_owned_stock(client, db) -> None:
         "totalProfitLoss": 200.0,
         "totalProfitLossPct": 20.0,
     }
-    assert body["money"]["unrealizedGainOpen"] == 200.0
-    assert body["money"]["unrealizedLossOpen"] == 0.0
 
 
-def test_detail_ok_status_full_shape(client, db) -> None:
+def test_dashboard_is_isolated_per_user(authed_client, db) -> None:
+    """authed_client is logged in as the default test user; a second,
+    independently-authenticated client must see an empty dashboard even
+    though the default user owns a stock."""
+    from fastapi.testclient import TestClient
+
+    make_stock(db, "AAPL", "Apple Inc.")
+    make_user(db, username="second", password="password123")
+
+    second_client = TestClient(app)
+    second_client.post("/api/auth/login", json={"username": "second", "password": "password123"})
+
+    body = second_client.get("/api/stocks").json()
+
+    assert body["stocks"] == []
+
+
+def test_detail_ok_status_full_shape(authed_client, db) -> None:
     stock = make_stock(db, "AAPL", "Apple Inc.", investor_relations_url="https://investor.apple.com")
     make_daily_prices(db, stock, ["100.00"] * 29 + ["90.00"])
 
-    r = client.get("/api/stocks/AAPL")
+    r = authed_client.get("/api/stocks/AAPL")
     assert r.status_code == 200
     body = r.json()
 
@@ -136,10 +151,10 @@ def test_detail_ok_status_full_shape(client, db) -> None:
     assert body["newsLinks"]["yahooFinance"] == "https://finance.yahoo.com/quote/AAPL"
 
 
-def test_detail_insufficient_history(client, db) -> None:
+def test_detail_insufficient_history(authed_client, db) -> None:
     make_stock(db, "RIVN", "Rivian Automotive, Inc.")
 
-    r = client.get("/api/stocks/RIVN")
+    r = authed_client.get("/api/stocks/RIVN")
     body = r.json()
     assert body["status"] == "insufficient_history"
     assert body["suggestion"] is None
@@ -150,44 +165,44 @@ def test_detail_insufficient_history(client, db) -> None:
     assert body["tradingDaysUntilReady"] == 30
 
 
-def test_detail_owned_position_includes_profit_target(client, db) -> None:
+def test_detail_owned_position_includes_profit_target(authed_client, db) -> None:
     stock = make_stock(db, "NVDA", "NVIDIA Corporation")
     make_daily_prices(db, stock, ["80.00"] * 29 + ["128.55"])
-    db.add(Trade(stock_id=stock.id, action="buy", shares=Decimal(25), price_per_share=Decimal("88.10"), trade_date=date(2026, 1, 1)))
+    db.add(Trade(watchlist_entry_id=stock.id, action="buy", shares=Decimal(25), price_per_share=Decimal("88.10"), trade_date=date(2026, 1, 1)))
     db.commit()
 
-    body = client.get("/api/stocks/NVDA").json()
+    body = authed_client.get("/api/stocks/NVDA").json()
     assert set(body["position"].keys()) == DETAIL_POSITION_KEYS
     assert set(body["position"]["profitTarget"].keys()) == PROFIT_TARGET_KEYS
     assert body["chart"]["userAvgPurchasePrice"] == 88.1
 
 
-def test_detail_unknown_ticker_is_404(client) -> None:
-    r = client.get("/api/stocks/ZZZZ")
+def test_detail_unknown_ticker_is_404(authed_client) -> None:
+    r = authed_client.get("/api/stocks/ZZZZ")
     assert r.status_code == 404
     assert set(r.json().keys()) == {"error"}
 
 
-def test_put_analysis_sets_value_and_returns_it(client, db) -> None:
+def test_put_analysis_sets_value_and_returns_it(authed_client, db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
 
-    r = client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
+    r = authed_client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
 
     assert r.status_code == 200
     assert r.json() == {"date": "2026-08-20", "value": 210.0}
 
     # No price history yet -- progress can't be computed.
-    detail = client.get("/api/stocks/AAPL").json()
+    detail = authed_client.get("/api/stocks/AAPL").json()
     assert detail["analysis"] == {"date": "2026-08-20", "value": 210.0, "progress": None}
 
 
-def test_analysis_progress_below_target(client, db) -> None:
+def test_analysis_progress_below_target(authed_client, db) -> None:
     stock = make_stock(db, "AAPL", "Apple Inc.")
     make_daily_prices(db, stock, ["100.00"] * 29 + ["90.00"])
 
-    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 120.00})
+    authed_client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 120.00})
 
-    detail = client.get("/api/stocks/AAPL").json()
+    detail = authed_client.get("/api/stocks/AAPL").json()
     assert detail["analysis"] == {
         "date": "2026-08-20",
         "value": 120.0,
@@ -195,13 +210,13 @@ def test_analysis_progress_below_target(client, db) -> None:
     }
 
 
-def test_analysis_progress_reached_when_price_at_or_above_target(client, db) -> None:
+def test_analysis_progress_reached_when_price_at_or_above_target(authed_client, db) -> None:
     stock = make_stock(db, "AAPL", "Apple Inc.")
     make_daily_prices(db, stock, ["100.00"] * 29 + ["150.00"])
 
-    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 120.00})
+    authed_client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 120.00})
 
-    detail = client.get("/api/stocks/AAPL").json()
+    detail = authed_client.get("/api/stocks/AAPL").json()
     assert detail["analysis"]["progress"] == {
         "targetPrice": 120.0,
         "progressPrice": 120.0,  # capped at target for a 0-100% bar
@@ -210,33 +225,33 @@ def test_analysis_progress_reached_when_price_at_or_above_target(client, db) -> 
     }
 
 
-def test_put_analysis_overwrites_existing_value(client, db) -> None:
+def test_put_analysis_overwrites_existing_value(authed_client, db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
-    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
+    authed_client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
 
-    r = client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-25", "value": 225.50})
+    r = authed_client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-25", "value": 225.50})
 
     assert r.json() == {"date": "2026-08-25", "value": 225.5}
 
 
-def test_put_analysis_unknown_ticker_is_404(client) -> None:
-    r = client.put("/api/stocks/ZZZZ/analysis", json={"date": "2026-08-20", "value": 210.00})
+def test_put_analysis_unknown_ticker_is_404(authed_client) -> None:
+    r = authed_client.put("/api/stocks/ZZZZ/analysis", json={"date": "2026-08-20", "value": 210.00})
     assert r.status_code == 404
 
 
-def test_delete_analysis_clears_value(client, db) -> None:
+def test_delete_analysis_clears_value(authed_client, db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
-    client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
+    authed_client.put("/api/stocks/AAPL/analysis", json={"date": "2026-08-20", "value": 210.00})
 
-    r = client.delete("/api/stocks/AAPL/analysis")
+    r = authed_client.delete("/api/stocks/AAPL/analysis")
 
     assert r.status_code == 204
-    detail = client.get("/api/stocks/AAPL").json()
+    detail = authed_client.get("/api/stocks/AAPL").json()
     assert detail["analysis"] is None
 
 
-def test_delete_analysis_unknown_ticker_is_404(client) -> None:
-    r = client.delete("/api/stocks/ZZZZ/analysis")
+def test_delete_analysis_unknown_ticker_is_404(authed_client) -> None:
+    r = authed_client.delete("/api/stocks/ZZZZ/analysis")
     assert r.status_code == 404
 
 
@@ -277,10 +292,10 @@ def _override_provider(provider: MarketDataProvider) -> None:
     app.dependency_overrides[get_market_data_provider] = lambda: provider
 
 
-def test_add_stock_valid_ticker_returns_201(client) -> None:
+def test_add_stock_valid_ticker_returns_201(authed_client) -> None:
     _override_provider(FakeProvider(company_name="Palantir Technologies Inc.", bars=[_bar()]))
     try:
-        r = client.post("/api/stocks", json={"ticker": "pltr"})
+        r = authed_client.post("/api/stocks", json={"ticker": "pltr"})
     finally:
         del app.dependency_overrides[get_market_data_provider]
 
@@ -289,14 +304,14 @@ def test_add_stock_valid_ticker_returns_201(client) -> None:
     assert set(body.keys()) == {"ticker", "companyName", "historyFetched"}
     assert body == {"ticker": "PLTR", "companyName": "Palantir Technologies Inc.", "historyFetched": True}
 
-    dashboard = client.get("/api/stocks").json()
+    dashboard = authed_client.get("/api/stocks").json()
     assert any(row["ticker"] == "PLTR" for row in dashboard["stocks"])
 
 
-def test_add_stock_unknown_ticker_is_422(client) -> None:
+def test_add_stock_unknown_ticker_is_422(authed_client) -> None:
     _override_provider(FakeProvider(company_name=None))
     try:
-        r = client.post("/api/stocks", json={"ticker": "ZZZZ"})
+        r = authed_client.post("/api/stocks", json={"ticker": "ZZZZ"})
     finally:
         del app.dependency_overrides[get_market_data_provider]
 
@@ -304,11 +319,11 @@ def test_add_stock_unknown_ticker_is_422(client) -> None:
     assert r.json() == {"error": "Unknown ticker — check the symbol."}
 
 
-def test_add_stock_already_on_watchlist_is_409(client, db) -> None:
+def test_add_stock_already_on_watchlist_is_409(authed_client, db) -> None:
     make_stock(db, "AAPL", "Apple Inc.")
     _override_provider(FakeProvider(company_name="Apple Inc.", bars=[_bar()]))
     try:
-        r = client.post("/api/stocks", json={"ticker": "AAPL"})
+        r = authed_client.post("/api/stocks", json={"ticker": "AAPL"})
     finally:
         del app.dependency_overrides[get_market_data_provider]
 

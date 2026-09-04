@@ -9,7 +9,7 @@ from stockmon.core.evaluation import Warning
 from stockmon.core.money import MoneySummary
 from stockmon.core.position import PositionValue
 from stockmon.core.summary import Summary, build_summary
-from stockmon.db.models import Stock
+from stockmon.db.models import WatchlistEntry
 from stockmon.services.money_service import build_money_summary, has_money_activity
 from stockmon.services.settings_service import get_effective_target
 from stockmon.services.stock_service import Status, evaluate_stock_snapshot
@@ -38,20 +38,21 @@ class Dashboard:
     money: MoneySummary | None
 
 
-def build_dashboard(db: Session) -> Dashboard:
+def build_dashboard(db: Session, user_id: int) -> Dashboard:
     rows: list[DashboardStockRow] = []
     invested: list[Decimal] = []
     current_values: list[Decimal] = []
     open_position_pnls: list[Decimal] = []
 
-    for stock in db.query(Stock).all():
-        target = get_effective_target(db, stock.id)
-        evaluation = evaluate_stock_snapshot(db, stock, target)
+    entries = db.query(WatchlistEntry).filter(WatchlistEntry.user_id == user_id).all()
+    for entry in entries:
+        target = get_effective_target(db, entry.id)
+        evaluation = evaluate_stock_snapshot(db, entry, target)
 
         rows.append(
             DashboardStockRow(
-                ticker=stock.ticker,
-                company_name=stock.company_name,
+                ticker=evaluation.ticker.ticker,
+                company_name=evaluation.ticker.company_name,
                 current_price=evaluation.current_price,
                 change_1d_pct=evaluation.change_1d_pct,
                 status=evaluation.status,
@@ -69,5 +70,5 @@ def build_dashboard(db: Session) -> Dashboard:
     return Dashboard(
         stocks=sort_dashboard_rows(rows),
         summary=build_summary(invested, current_values),
-        money=build_money_summary(db, open_position_pnls) if has_money_activity(db) else None,
+        money=build_money_summary(db, user_id, open_position_pnls) if has_money_activity(db, user_id) else None,
     )

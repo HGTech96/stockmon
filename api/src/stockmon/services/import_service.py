@@ -2,7 +2,8 @@
 ordered CSV of past deposits/withdrawals/buys/sells and replays every row
 through the same sequence-validators the live write paths use
 (derive_position, validate_cash_sequence), on top of the current DB state.
-Nothing is written until every row has survived validation.
+Nothing is written until every row has survived validation. Per-user: every
+row is imported against one user's watchlist and cash ledger.
 """
 
 import csv
@@ -16,8 +17,8 @@ from sqlalchemy.orm import Session
 from stockmon.core.cash import CashError, CashFlowEvent
 from stockmon.core.position import PositionError, TradeEvent, derive_position
 from stockmon.db.models import CashEvent as CashEventRow
-from stockmon.db.models import Stock
 from stockmon.db.models import Trade as TradeRow
+from stockmon.db.models import WatchlistEntry
 from stockmon.services.cash_service import (
     load_all_cash_event_flow_events,
     load_all_trade_flow_events,
@@ -143,36 +144,53 @@ def _dup_key(
     return (event_date, kind, ticker, shares, price_per_share, amount)
 
 
-def _existing_dup_keys(db: Session, stocks_by_id: dict[int, str]) -> set[tuple]:
+def _existing_dup_keys(db: Session, user_id: int, tickers_by_entry_id: dict[int, str]) -> set[tuple]:
     keys = set()
-    for row in db.query(TradeRow).all():
-        keys.add(_dup_key(row.trade_date, row.action, stocks_by_id[row.stock_id], row.shares, row.price_per_share, None))
-    for row in db.query(CashEventRow).all():
+    for row in (
+        db.query(TradeRow)
+        .join(WatchlistEntry, TradeRow.watchlist_entry_id == WatchlistEntry.id)
+        .filter(WatchlistEntry.user_id == user_id)
+        .all()
+    ):
+        keys.add(
+            _dup_key(
+                row.trade_date, row.action, tickers_by_entry_id[row.watchlist_entry_id], row.shares, row.price_per_share, None
+            )
+        )
+    for row in db.query(CashEventRow).filter(CashEventRow.user_id == user_id).all():
         keys.add(_dup_key(row.event_date, row.type, None, None, None, row.amount_usd))
     return keys
 
 
-def import_rows(db: Session, rows: list[ImportRow]) -> ImportSummary:
+def import_rows(db: Session, user_id: int, rows: list[ImportRow]) -> ImportSummary:
     """Pass 1 (no writes): replays every row, in file order, against the
     current DB state via derive_position (per ticker) and
     validate_cash_sequence (global), plus duplicate checks against both the
-    pre-import DB snapshot and earlier rows already parsed from this CSV.
-    Raises ImportError naming the line on the first failure. Pass 2 (only on
-    full success): inserts every Trade/CashEvent row and commits once."""
-    stocks_by_ticker = {stock.ticker: stock for stock in db.query(Stock).all()}
-    stocks_by_id = {stock.id: ticker for ticker, stock in stocks_by_ticker.items()}
+    pre-import DB snapshot and earlier rows already parsed from this CSV --
+    all scoped to `user_id`'s own watchlist and cash ledger. Raises
+    ImportError naming the line on the first failure. Pass 2 (only on full
+    success): inserts every Trade/CashEvent row and commits once."""
+    entries = db.query(WatchlistEntry).filter(WatchlistEntry.user_id == user_id).all()
+    entries_by_ticker = {entry.ticker.ticker: entry for entry in entries}
+    tickers_by_entry_id = {entry.id: ticker for ticker, entry in entries_by_ticker.items()}
 
-    existing_dup_keys = _existing_dup_keys(db, stocks_by_id)
+    existing_dup_keys = _existing_dup_keys(db, user_id, tickers_by_entry_id)
     seen_in_csv: set[tuple] = set()
 
-    trade_events_by_ticker: dict[str, list[TradeEvent]] = {ticker: [] for ticker in stocks_by_ticker}
-    for row in db.query(TradeRow).order_by(TradeRow.trade_date, TradeRow.id).all():
-        ticker = stocks_by_id[row.stock_id]
+    trade_events_by_ticker: dict[str, list[TradeEvent]] = {ticker: [] for ticker in entries_by_ticker}
+    for row in (
+        db.query(TradeRow)
+        .join(WatchlistEntry, TradeRow.watchlist_entry_id == WatchlistEntry.id)
+        .filter(WatchlistEntry.user_id == user_id)
+        .order_by(TradeRow.trade_date, TradeRow.id)
+        .all()
+    ):
+        ticker = tickers_by_entry_id[row.watchlist_entry_id]
         trade_events_by_ticker[ticker].append(
             TradeEvent(action=row.action, shares=row.shares, price_per_share=row.price_per_share, date=row.trade_date)
         )
 
-    global_cash_flows = load_all_trade_flow_events(db) + load_all_cash_event_flow_events(db)
+    global_cash_flows = load_all_trade_flow_events(db, user_id) + load_all_cash_event_flow_events(db, user_id)
 
     for row in rows:
         key = _dup_key(row.event_date, row.kind, row.ticker, row.shares, row.price_per_share, row.amount)
@@ -183,7 +201,7 @@ def import_rows(db: Session, rows: list[ImportRow]) -> ImportSummary:
         seen_in_csv.add(key)
 
         if row.kind in _TRADE_KINDS:
-            if row.ticker not in stocks_by_ticker:
+            if row.ticker not in entries_by_ticker:
                 raise ImportError(f"line {row.line}: '{row.ticker}' is not on the watchlist")
 
             candidate_events = sorted(
@@ -214,7 +232,7 @@ def import_rows(db: Session, rows: list[ImportRow]) -> ImportSummary:
         if row.kind in _TRADE_KINDS:
             db.add(
                 TradeRow(
-                    stock_id=stocks_by_ticker[row.ticker].id,
+                    watchlist_entry_id=entries_by_ticker[row.ticker].id,
                     action=row.kind,
                     shares=row.shares,
                     price_per_share=row.price_per_share,
@@ -223,7 +241,7 @@ def import_rows(db: Session, rows: list[ImportRow]) -> ImportSummary:
             )
             trades_added += 1
         else:
-            db.add(CashEventRow(type=row.kind, amount_usd=row.amount, event_date=row.event_date))
+            db.add(CashEventRow(user_id=user_id, type=row.kind, amount_usd=row.amount, event_date=row.event_date))
             cash_events_added += 1
     db.commit()
 

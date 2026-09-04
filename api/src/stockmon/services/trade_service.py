@@ -7,8 +7,9 @@ from sqlalchemy.orm import Session
 
 from stockmon.core.cash import CashError, CashFlowEvent
 from stockmon.core.position import Position, PositionError, TradeEvent, compute_realized_pnl, derive_position
-from stockmon.db.models import Stock
+from stockmon.db.models import Ticker
 from stockmon.db.models import Trade as TradeRow
+from stockmon.db.models import WatchlistEntry
 from stockmon.services.cash_service import (
     load_all_cash_event_flow_events,
     load_all_trade_flow_events,
@@ -57,31 +58,64 @@ def _validate_trade_fields(shares: Decimal, price_per_share: Decimal, trade_date
         raise TradeValidationError("Trade date cannot be in the future")
 
 
-def _load_trade_rows(db: Session, stock_id: int) -> list[TradeRow]:
+def _find_watchlist_entry(db: Session, user_id: int, ticker: str) -> WatchlistEntry | None:
+    return (
+        db.query(WatchlistEntry)
+        .join(Ticker, WatchlistEntry.ticker_id == Ticker.id)
+        .filter(WatchlistEntry.user_id == user_id, Ticker.ticker == ticker)
+        .first()
+    )
+
+
+def _load_trade_rows(db: Session, watchlist_entry_id: int) -> list[TradeRow]:
     return (
         db.query(TradeRow)
-        .filter(TradeRow.stock_id == stock_id)
+        .filter(TradeRow.watchlist_entry_id == watchlist_entry_id)
         .order_by(TradeRow.trade_date, TradeRow.id)
         .all()
     )
 
 
-def _load_all_trade_rows(db: Session) -> list[TradeRow]:
-    return db.query(TradeRow).order_by(TradeRow.trade_date, TradeRow.id).all()
+def _load_all_trade_rows(db: Session, user_id: int) -> list[TradeRow]:
+    return (
+        db.query(TradeRow)
+        .join(WatchlistEntry, TradeRow.watchlist_entry_id == WatchlistEntry.id)
+        .filter(WatchlistEntry.user_id == user_id)
+        .order_by(TradeRow.trade_date, TradeRow.id)
+        .all()
+    )
+
+
+def _get_own_trade_row(db: Session, user_id: int, trade_id: int) -> TradeRow:
+    """Loads a trade by id AND checks it belongs to this user -- a trade
+    that exists but belongs to someone else is treated identically to one
+    that doesn't exist (TradeNotFoundError -> 404), never leaking that the
+    id is valid for another account."""
+    row = (
+        db.query(TradeRow)
+        .join(WatchlistEntry, TradeRow.watchlist_entry_id == WatchlistEntry.id)
+        .filter(TradeRow.id == trade_id, WatchlistEntry.user_id == user_id)
+        .first()
+    )
+    if row is None:
+        raise TradeNotFoundError(trade_id)
+    return row
 
 
 def _validate_global_cash_sequence(
     db: Session,
+    user_id: int,
     candidate_trade_flows: list[CashFlowEvent],
     error_message: str,
 ) -> None:
     """Rebuilds the full cash-flow picture (the given candidate trade-side
-    flows, all tickers, + the unchanged cash-event log) and validates it via
-    validate_cash_sequence -- the one source of truth for the never-negative-
-    cash rule. Used by update_trade/delete_trade, which must re-check this
-    unconditionally: shrinking or removing a SELL's proceeds can strand a
-    later buy or withdrawal just as easily as editing a buy can."""
-    candidate_cash_flows = candidate_trade_flows + load_all_cash_event_flow_events(db)
+    flows, all of this user's tickers, + their unchanged cash-event log) and
+    validates it via validate_cash_sequence -- the one source of truth for
+    the never-negative-cash rule. Used by update_trade/delete_trade, which
+    must re-check this unconditionally: shrinking or removing a SELL's
+    proceeds can strand a later buy or withdrawal just as easily as editing
+    a buy can."""
+    candidate_cash_flows = candidate_trade_flows + load_all_cash_event_flow_events(db, user_id)
     try:
         validate_cash_sequence(candidate_cash_flows)
     except CashError as exc:
@@ -95,12 +129,13 @@ def _to_events(rows: list[TradeRow]) -> list[TradeEvent]:
     ]
 
 
-def _load_trade_events(db: Session, stock_id: int) -> list[TradeEvent]:
-    return _to_events(_load_trade_rows(db, stock_id))
+def _load_trade_events(db: Session, watchlist_entry_id: int) -> list[TradeEvent]:
+    return _to_events(_load_trade_rows(db, watchlist_entry_id))
 
 
 def record_trade(
     db: Session,
+    user_id: int,
     ticker: str,
     action: Literal["buy", "sell"],
     shares: Decimal,
@@ -111,12 +146,12 @@ def record_trade(
     position by replaying the FULL trade history (including the new row)
     through derive_position() — the single source of truth for position
     math, never hand-adjusted."""
-    stock = db.query(Stock).filter(Stock.ticker == ticker).first()
-    if stock is None:
+    entry = _find_watchlist_entry(db, user_id, ticker)
+    if entry is None:
         raise TradeValidationError(f"'{ticker}' is not on the watchlist")
     _validate_trade_fields(shares, price_per_share, trade_date)
 
-    existing_events = _load_trade_events(db, stock.id)
+    existing_events = _load_trade_events(db, entry.id)
 
     if action == "sell":
         position_before = derive_position(existing_events)
@@ -129,8 +164,8 @@ def record_trade(
 
     if action == "buy":
         candidate_cash_flows = (
-            load_all_trade_flow_events(db)
-            + load_all_cash_event_flow_events(db)
+            load_all_trade_flow_events(db, user_id)
+            + load_all_cash_event_flow_events(db, user_id)
             + [CashFlowEvent(kind="buy", amount=shares * price_per_share, date=trade_date)]
         )
         try:
@@ -139,7 +174,7 @@ def record_trade(
             raise TradeValidationError("Insufficient cash — record a deposit first.") from exc
 
     trade = TradeRow(
-        stock_id=stock.id,
+        watchlist_entry_id=entry.id,
         action=action,
         shares=shares,
         price_per_share=price_per_share,
@@ -162,6 +197,7 @@ def record_trade(
 
 def update_trade(
     db: Session,
+    user_id: int,
     trade_id: int,
     shares: Decimal,
     price_per_share: Decimal,
@@ -173,12 +209,10 @@ def update_trade(
     relocates only that entry), validates it via derive_position -- the
     single source of truth for the oversell rule -- and only mutates the
     row once validation passes. Never a partial apply."""
-    trade = db.query(TradeRow).filter(TradeRow.id == trade_id).first()
-    if trade is None:
-        raise TradeNotFoundError(trade_id)
+    trade = _get_own_trade_row(db, user_id, trade_id)
     _validate_trade_fields(shares, price_per_share, trade_date)
 
-    rows = _load_trade_rows(db, trade.stock_id)
+    rows = _load_trade_rows(db, trade.watchlist_entry_id)
     candidate_events = [
         TradeEvent(action=row.action, shares=shares, price_per_share=price_per_share, date=trade_date)
         if row.id == trade_id
@@ -196,10 +230,10 @@ def update_trade(
         CashFlowEvent(kind=row.action, amount=shares * price_per_share, date=trade_date)
         if row.id == trade_id
         else trade_row_to_flow_event(row)
-        for row in _load_all_trade_rows(db)
+        for row in _load_all_trade_rows(db, user_id)
     ]
     _validate_global_cash_sequence(
-        db, candidate_trade_flows, "Can't make this change — a later buy or withdrawal depends on it."
+        db, user_id, candidate_trade_flows, "Can't make this change — a later buy or withdrawal depends on it."
     )
 
     trade.shares = shares
@@ -211,15 +245,13 @@ def update_trade(
     return TradeResult(trade=trade, updated_position=updated_position)
 
 
-def delete_trade(db: Session, trade_id: int) -> Position | None:
+def delete_trade(db: Session, user_id: int, trade_id: int) -> Position | None:
     """Builds the event list for the trade's ticker with this trade removed,
     validates via derive_position, then deletes. Returns the recalculated
     position (None if the ticker ends up fully closed / never opened)."""
-    trade = db.query(TradeRow).filter(TradeRow.id == trade_id).first()
-    if trade is None:
-        raise TradeNotFoundError(trade_id)
+    trade = _get_own_trade_row(db, user_id, trade_id)
 
-    remaining_rows = [row for row in _load_trade_rows(db, trade.stock_id) if row.id != trade_id]
+    remaining_rows = [row for row in _load_trade_rows(db, trade.watchlist_entry_id) if row.id != trade_id]
     remaining_events = _to_events(remaining_rows)
 
     try:
@@ -228,10 +260,10 @@ def delete_trade(db: Session, trade_id: int) -> Position | None:
         raise TradeValidationError(str(exc)) from exc
 
     candidate_trade_flows = [
-        trade_row_to_flow_event(row) for row in _load_all_trade_rows(db) if row.id != trade_id
+        trade_row_to_flow_event(row) for row in _load_all_trade_rows(db, user_id) if row.id != trade_id
     ]
     _validate_global_cash_sequence(
-        db, candidate_trade_flows, "Can't remove this — a later buy or withdrawal depends on it."
+        db, user_id, candidate_trade_flows, "Can't remove this — a later buy or withdrawal depends on it."
     )
 
     db.delete(trade)
@@ -240,31 +272,35 @@ def delete_trade(db: Session, trade_id: int) -> Position | None:
     return updated_position
 
 
-def list_trade_history(db: Session) -> list[TradeHistoryEntry]:
-    """All trades across the watchlist, newest first. Realized P/L is
-    computed per-ticker (compute_realized_pnl needs each stock's own
-    chronological trade sequence to replay average cost correctly)."""
-    stocks = {stock.id: stock for stock in db.query(Stock).all()}
-    rows = db.query(TradeRow).order_by(TradeRow.trade_date, TradeRow.id).all()
+def list_trade_history(db: Session, user_id: int) -> list[TradeHistoryEntry]:
+    """All of this user's trades across their watchlist, newest first.
+    Realized P/L is computed per-ticker (compute_realized_pnl needs each
+    stock's own chronological trade sequence to replay average cost
+    correctly)."""
+    entries_by_id = {
+        entry.id: entry
+        for entry in db.query(WatchlistEntry).filter(WatchlistEntry.user_id == user_id).all()
+    }
+    rows = _load_all_trade_rows(db, user_id)
 
-    rows_by_stock: dict[int, list[TradeRow]] = {}
+    rows_by_entry: dict[int, list[TradeRow]] = {}
     for row in rows:
-        rows_by_stock.setdefault(row.stock_id, []).append(row)
+        rows_by_entry.setdefault(row.watchlist_entry_id, []).append(row)
 
     realized_pnl_by_row_id: dict[int, Decimal | None] = {}
-    for stock_id, stock_rows in rows_by_stock.items():
+    for entry_id, entry_rows in rows_by_entry.items():
         events = [
             TradeEvent(action=row.action, shares=row.shares, price_per_share=row.price_per_share, date=row.trade_date)
-            for row in stock_rows
+            for row in entry_rows
         ]
-        for row, realized in zip(stock_rows, compute_realized_pnl(events)):
+        for row, realized in zip(entry_rows, compute_realized_pnl(events)):
             realized_pnl_by_row_id[row.id] = realized
 
     entries = [
         TradeHistoryEntry(
             id=row.id,
-            ticker=stocks[row.stock_id].ticker,
-            company_name=stocks[row.stock_id].company_name,
+            ticker=entries_by_id[row.watchlist_entry_id].ticker.ticker,
+            company_name=entries_by_id[row.watchlist_entry_id].ticker.company_name,
             action=row.action,
             shares=row.shares,
             price_per_share=row.price_per_share,

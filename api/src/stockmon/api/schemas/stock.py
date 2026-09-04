@@ -14,7 +14,7 @@ class AddStockResponse(CamelModel):
     @classmethod
     def from_core(cls, result: AddStockResult) -> "AddStockResponse":
         return cls(
-            ticker=result.stock.ticker,
-            company_name=result.stock.company_name,
+            ticker=result.entry.ticker.ticker,
+            company_name=result.entry.ticker.company_name,
             history_fetched=result.history_fetched,
         )

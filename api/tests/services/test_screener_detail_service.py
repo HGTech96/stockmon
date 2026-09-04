@@ -67,8 +67,8 @@ def test_valid_ticker_returns_full_unowned_detail() -> None:
 
     detail = get_screener_stock_detail(provider, "pltr")
 
-    assert detail.evaluation.stock.ticker == "PLTR"
-    assert detail.evaluation.stock.company_name == "PLTR Inc."
+    assert detail.evaluation.ticker.ticker == "PLTR"
+    assert detail.evaluation.ticker.company_name == "PLTR Inc."
     assert detail.evaluation.status == "ok"
     assert detail.evaluation.suggestion is not None
     assert detail.evaluation.suggestion.type == "entry"

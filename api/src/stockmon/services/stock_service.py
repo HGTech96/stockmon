@@ -14,7 +14,7 @@ from stockmon.core.indicators import (
 )
 from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider
 from stockmon.core.position import Position, PositionValue, TradeEvent, derive_position, value_position
-from stockmon.db.models import DailyPrice, Stock, Trade
+from stockmon.db.models import DailyPrice, Ticker, Trade, WatchlistEntry
 from stockmon.services.refresh_service import refresh_stock
 
 Status = Literal["ok", "insufficient_history"]
@@ -40,7 +40,7 @@ class StockAlreadyOnWatchlistError(Exception):
 
 @dataclass(frozen=True)
 class AddStockResult:
-    stock: Stock
+    entry: WatchlistEntry
     history_fetched: bool
 
 
@@ -52,7 +52,7 @@ class AnalysisView:
 
 @dataclass(frozen=True)
 class StockEvaluation:
-    stock: Stock
+    ticker: Ticker
     bars: list[DailyBar]
     status: Status
     current_price: Decimal | None
@@ -65,10 +65,28 @@ class StockEvaluation:
     warning: Warning | None
 
 
-def _load_bars(db: Session, stock_id: int) -> list[DailyBar]:
+def get_watchlist_entry(db: Session, user_id: int, ticker: str) -> WatchlistEntry:
+    """Resolves a ticker symbol to THIS user's watchlist entry -- the one
+    lookup used everywhere a ticker in the URL must be scoped to the
+    logged-in user (set/clear analysis, stock detail, settings overrides).
+    404s (StockNotFoundError) rather than distinguishing "ticker doesn't
+    exist" from "ticker exists but isn't yours" -- same externally-visible
+    behavior either way."""
+    entry = (
+        db.query(WatchlistEntry)
+        .join(Ticker, WatchlistEntry.ticker_id == Ticker.id)
+        .filter(WatchlistEntry.user_id == user_id, Ticker.ticker == ticker)
+        .first()
+    )
+    if entry is None:
+        raise StockNotFoundError(ticker)
+    return entry
+
+
+def _load_bars(db: Session, ticker_id: int) -> list[DailyBar]:
     rows = (
         db.query(DailyPrice)
-        .filter(DailyPrice.stock_id == stock_id)
+        .filter(DailyPrice.ticker_id == ticker_id)
         .order_by(DailyPrice.trade_date)
         .all()
     )
@@ -85,10 +103,10 @@ def _load_bars(db: Session, stock_id: int) -> list[DailyBar]:
     ]
 
 
-def _load_trade_events(db: Session, stock_id: int) -> list[TradeEvent]:
+def _load_trade_events(db: Session, watchlist_entry_id: int) -> list[TradeEvent]:
     rows = (
         db.query(Trade)
-        .filter(Trade.stock_id == stock_id)
+        .filter(Trade.watchlist_entry_id == watchlist_entry_id)
         .order_by(Trade.trade_date, Trade.id)
         .all()
     )
@@ -103,14 +121,15 @@ def _load_trade_events(db: Session, stock_id: int) -> list[TradeEvent]:
     ]
 
 
-def evaluate_stock_snapshot(db: Session, stock: Stock, target_dollars: Decimal) -> StockEvaluation:
-    """Loads price history and trade history for a stock and runs every
-    core/ evaluation against it. Falls back to a bare price snapshot when
-    there isn't enough history for full indicators, since the dashboard and
-    portfolio still need to show currentPrice/position value for those
-    stocks. Position value only needs the latest close, so it's computed
-    even when status is insufficient_history."""
-    bars = _load_bars(db, stock.id)
+def evaluate_stock_snapshot(db: Session, entry: WatchlistEntry, target_dollars: Decimal) -> StockEvaluation:
+    """Loads price history (shared, keyed by ticker) and trade history
+    (per-user, keyed by watchlist entry) and runs every core/ evaluation
+    against it. Falls back to a bare price snapshot when there isn't enough
+    history for full indicators, since the dashboard and portfolio still
+    need to show currentPrice/position value for those stocks. Position
+    value only needs the latest close, so it's computed even when status is
+    insufficient_history."""
+    bars = _load_bars(db, entry.ticker_id)
 
     indicators: Indicators | None = None
     current_price: Decimal | None = None
@@ -128,7 +147,7 @@ def evaluate_stock_snapshot(db: Session, stock: Stock, target_dollars: Decimal) 
             current_price = snapshot.current_price
             change_1d_pct = snapshot.change_1d_pct
 
-    position = derive_position(_load_trade_events(db, stock.id))
+    position = derive_position(_load_trade_events(db, entry.id))
     position_value: PositionValue | None = None
     if position is not None and current_price is not None:
         position_value = value_position(position, current_price)
@@ -140,7 +159,7 @@ def evaluate_stock_snapshot(db: Session, stock: Stock, target_dollars: Decimal) 
         warning = detect_sharp_move(indicators)
 
     return StockEvaluation(
-        stock=stock,
+        ticker=entry.ticker,
         bars=bars,
         status=status,
         current_price=current_price,
@@ -154,55 +173,65 @@ def evaluate_stock_snapshot(db: Session, stock: Stock, target_dollars: Decimal) 
     )
 
 
-def add_stock_to_watchlist(db: Session, provider: MarketDataProvider, ticker: str) -> AddStockResult:
-    """Two independent failure modes:
+def add_stock_to_watchlist(db: Session, provider: MarketDataProvider, user_id: int, ticker: str) -> AddStockResult:
+    """Tickers are shared market data; watchlist entries are per-user. Two
+    independent failure modes:
     - name doesn't resolve (raises, or resolves blank) -> reject, nothing
       stored (UnknownTickerError -> 422).
-    - name resolves but history fetch fails -> still add the stock; it's a
+    - name resolves but history fetch fails -> still add the entry; it's a
       real ticker, the history gap is transient and self-heals on the next
       refresh. Caller uses `history_fetched` to word the success message
       honestly instead of implying the row has data already."""
     ticker = ticker.strip().upper()
-    if db.query(Stock).filter(Stock.ticker == ticker).first() is not None:
-        raise StockAlreadyOnWatchlistError(ticker)
+    ticker_row = db.query(Ticker).filter(Ticker.ticker == ticker).first()
 
-    try:
-        company_name = provider.fetch_company_name(ticker).strip()
-    except MarketDataError as exc:
-        raise UnknownTickerError(ticker) from exc
-    if not company_name:
-        # Defense in depth: enforce "blank name = unresolved" here too, not
-        # just inside YFinanceProvider, so the rule holds for any provider.
-        raise UnknownTickerError(ticker)
+    if ticker_row is not None:
+        existing_entry = (
+            db.query(WatchlistEntry)
+            .filter(WatchlistEntry.user_id == user_id, WatchlistEntry.ticker_id == ticker_row.id)
+            .first()
+        )
+        if existing_entry is not None:
+            raise StockAlreadyOnWatchlistError(ticker)
+    else:
+        try:
+            company_name = provider.fetch_company_name(ticker).strip()
+        except MarketDataError as exc:
+            raise UnknownTickerError(ticker) from exc
+        if not company_name:
+            # Defense in depth: enforce "blank name = unresolved" here too, not
+            # just inside YFinanceProvider, so the rule holds for any provider.
+            raise UnknownTickerError(ticker)
 
-    # Non-critical: fetch_exchange already swallows its own failures and
-    # returns None rather than raising, so a resolvable ticker is never
-    # rejected over a missing/unrecognized exchange.
-    exchange = provider.fetch_exchange(ticker)
+        # Non-critical: fetch_exchange already swallows its own failures and
+        # returns None rather than raising, so a resolvable ticker is never
+        # rejected over a missing/unrecognized exchange.
+        exchange = provider.fetch_exchange(ticker)
 
-    stock = Stock(ticker=ticker, company_name=company_name, exchange=exchange)
-    db.add(stock)
+        ticker_row = Ticker(ticker=ticker, company_name=company_name, exchange=exchange)
+        db.add(ticker_row)
+        db.commit()
+        db.refresh(ticker_row)
+
+    entry = WatchlistEntry(user_id=user_id, ticker_id=ticker_row.id)
+    db.add(entry)
     db.commit()
-    db.refresh(stock)
+    db.refresh(entry)
 
-    failure = refresh_stock(db, provider, stock)
-    return AddStockResult(stock=stock, history_fetched=failure is None)
+    failure = refresh_stock(db, provider, ticker_row)
+    return AddStockResult(entry=entry, history_fetched=failure is None)
 
 
-def set_analysis(db: Session, ticker: str, analysis_date: date, value: Decimal) -> AnalysisView:
-    stock = db.query(Stock).filter(Stock.ticker == ticker).first()
-    if stock is None:
-        raise StockNotFoundError(ticker)
-    stock.analysis_date = analysis_date
-    stock.analysis_value = value
+def set_analysis(db: Session, user_id: int, ticker: str, analysis_date: date, value: Decimal) -> AnalysisView:
+    entry = get_watchlist_entry(db, user_id, ticker)
+    entry.analysis_date = analysis_date
+    entry.analysis_value = value
     db.commit()
-    return AnalysisView(date=stock.analysis_date, value=stock.analysis_value)
+    return AnalysisView(date=entry.analysis_date, value=entry.analysis_value)
 
 
-def clear_analysis(db: Session, ticker: str) -> None:
-    stock = db.query(Stock).filter(Stock.ticker == ticker).first()
-    if stock is None:
-        raise StockNotFoundError(ticker)
-    stock.analysis_date = None
-    stock.analysis_value = None
+def clear_analysis(db: Session, user_id: int, ticker: str) -> None:
+    entry = get_watchlist_entry(db, user_id, ticker)
+    entry.analysis_date = None
+    entry.analysis_value = None
     db.commit()

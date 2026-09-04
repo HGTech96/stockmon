@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, merge_live_quote
 from stockmon.db.daily_prices import upsert_daily_prices
-from stockmon.db.models import Stock
+from stockmon.db.models import Ticker, WatchlistEntry
 
 DEFAULT_HISTORY_DAYS = 60
 
@@ -38,32 +38,42 @@ class RefreshResult:
 
 
 def refresh_stock(
-    db: Session, provider: MarketDataProvider, stock: Stock, days: int = DEFAULT_HISTORY_DAYS
+    db: Session, provider: MarketDataProvider, ticker_row: Ticker, days: int = DEFAULT_HISTORY_DAYS
 ) -> RefreshFailure | None:
     """One ticker's fetch+upsert+commit, success=None / failure=RefreshFailure.
     Used by refresh_all_stocks (looped) and add_stock_to_watchlist (single
-    call) so both paths share one implementation."""
+    call) so both paths share one implementation. Operates on the shared
+    Ticker row -- refreshing benefits every user tracking it."""
     try:
-        bars = provider.fetch_daily_history(stock.ticker, days)
-        bars = overlay_live_price(provider, stock.ticker, bars)
-        upsert_daily_prices(db, stock.id, bars)
+        bars = provider.fetch_daily_history(ticker_row.ticker, days)
+        bars = overlay_live_price(provider, ticker_row.ticker, bars)
+        upsert_daily_prices(db, ticker_row.id, bars)
         db.commit()
         return None
     except MarketDataError as exc:
         db.rollback()
-        return RefreshFailure(ticker=stock.ticker, error=str(exc))
+        return RefreshFailure(ticker=ticker_row.ticker, error=str(exc))
 
 
 def refresh_all_stocks(
-    db: Session, provider: MarketDataProvider, days: int = DEFAULT_HISTORY_DAYS
+    db: Session, provider: MarketDataProvider, user_id: int, days: int = DEFAULT_HISTORY_DAYS
 ) -> RefreshResult:
+    """Refreshes every ticker on this user's watchlist. Since Ticker rows
+    are shared, this also freshens the data for any other user tracking
+    the same ticker."""
     refreshed: list[str] = []
     failed: list[RefreshFailure] = []
 
-    for stock in db.query(Stock).all():
-        failure = refresh_stock(db, provider, stock, days)
+    tickers = (
+        db.query(Ticker)
+        .join(WatchlistEntry, WatchlistEntry.ticker_id == Ticker.id)
+        .filter(WatchlistEntry.user_id == user_id)
+        .all()
+    )
+    for ticker_row in tickers:
+        failure = refresh_stock(db, provider, ticker_row, days)
         if failure is None:
-            refreshed.append(stock.ticker)
+            refreshed.append(ticker_row.ticker)
         else:
             failed.append(failure)
 

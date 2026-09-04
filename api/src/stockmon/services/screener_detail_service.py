@@ -8,7 +8,7 @@ from stockmon.core.indicators import (
     calculate_price_snapshot,
 )
 from stockmon.core.market_data import MarketDataError, MarketDataProvider
-from stockmon.db.models import Stock
+from stockmon.db.models import Ticker
 from stockmon.services.refresh_service import DEFAULT_HISTORY_DAYS, overlay_live_price
 from stockmon.services.stock_detail_service import ChartDay, StockDetail, news_links_for_ticker
 from stockmon.services.stock_service import StockEvaluation, Status, UnknownTickerError
@@ -37,7 +37,7 @@ def get_screener_stock_detail(provider: MarketDataProvider, ticker: str) -> Stoc
         bars = []
     bars = overlay_live_price(provider, ticker, bars)
 
-    stock = Stock(ticker=ticker, company_name=company_name)
+    ticker_row = Ticker(ticker=ticker, company_name=company_name)
 
     status: Status = "insufficient_history"
     current_price = None
@@ -58,7 +58,7 @@ def get_screener_stock_detail(provider: MarketDataProvider, ticker: str) -> Stoc
     warning = detect_sharp_move(indicators) if indicators is not None else None
 
     evaluation = StockEvaluation(
-        stock=stock,
+        ticker=ticker_row,
         bars=bars,
         status=status,
         current_price=current_price,
