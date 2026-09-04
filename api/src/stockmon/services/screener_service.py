@@ -47,9 +47,13 @@ class ScreenerBatchResult:
 
 
 def read_screener_universe(path: Path = SCREENER_STOCKS_PATH) -> list[str]:
-    """One ticker per line, blank lines ignored, uppercased and stripped."""
+    """One ticker per line, blank lines ignored, uppercased and stripped.
+    Deduplicated (first occurrence wins, order preserved) -- this is a
+    user-edited file, and a duplicate line would otherwise crash the whole
+    batch insert on screener_results' unique ticker constraint."""
     with open(path) as fileobj:
-        return [line.strip().upper() for line in fileobj if line.strip()]
+        tickers = [line.strip().upper() for line in fileobj if line.strip()]
+    return list(dict.fromkeys(tickers))
 
 
 def fetch_and_evaluate_ticker(provider: MarketDataProvider, ticker: str) -> ScreenerRow | ScreenerFetchFailure:
