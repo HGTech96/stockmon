@@ -1,4 +1,4 @@
-# stockmon — API Contract v1.17
+# stockmon — API Contract v1.18
 
 Base URL: `http://localhost:8000/api`
 
@@ -109,6 +109,13 @@ different watchlists/portfolios/histories through the same endpoints.
 ```
 
 → `401 { "error": "Invalid username or password" }` on bad credentials.
+
+→ `429 { "error": "Too many failed login attempts. Try again in a few
+minutes." }` after 5 failed attempts for that username within a rolling
+15-minute window (checked before the password itself, so it fires
+identically whether or not the username exists). Sliding window, not a
+fixed lockout period — self-clears as old failures age out. (v1.18, see
+Phase 24 — `docs/planning/phase-24-deployment.md`)
 
 `POST /api/auth/logout` → `204`, clears the cookie. No-op (still `204`) if
 already logged out.
@@ -631,6 +638,13 @@ trigger paths. Blocks until the whole run completes (noticeably longer than
   that hit a bad ticker). No `meta` field, matching `POST /api/refresh`'s
   shape.
 - After this call, `GET /api/screener` reflects the new run immediately.
+- → `429 { "error": "Screener was just refreshed. Try again in N
+  minute(s)." }` if the last run finished under 15 minutes ago — this
+  endpoint is unauthenticated by design (see the Auth section above), so
+  it's guarded against being hammered rather than requiring login. Only
+  applies to this on-demand trigger; `scripts/run_screener.py` (the manual
+  terminal job) is never subject to it. (v1.18, see Phase 24 —
+  `docs/planning/phase-24-deployment.md`)
 
 ### GET /api/screener (read-only)
 
@@ -804,3 +818,11 @@ Payload matches an UNOWNED stock's detail on the main dashboard.
   `refresh_status` gained per-user scoping. No response shape changes —
   purely a data-isolation and auth-requirement change. See Phase 23
   (`docs/planning/phase-23-multi-user-accounts.md`).
+
+- v1.18: pre-deployment security hardening — `POST /api/auth/login` gains
+  a `429` sliding-window lockout (5 failed attempts / 15 minutes per
+  username, tracked in a new `login_attempts` table); `POST
+  /api/screener/refresh` gains a `429` minimum-interval guard (15 minutes
+  since the last run) since it's unauthenticated by design. No other
+  response shape changes. See Phase 24
+  (`docs/planning/phase-24-deployment.md`).

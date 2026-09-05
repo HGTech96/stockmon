@@ -49,6 +49,24 @@ class UserSession(Base):
     user: Mapped["User"] = relationship(back_populates="sessions")
 
 
+class LoginAttempt(Base):
+    """One row per login attempt (success or failure), keyed by the
+    submitted username rather than user_id -- a failed attempt against an
+    unknown username still needs to count toward that username's lockout,
+    same as a wrong password against a real one, so there's often no user
+    row to reference at all. Sliding-window lockout: see
+    auth_service.authenticate (5 failures / 15 minutes locks out; no
+    separate expiry state, a lock just self-clears as old rows age out of
+    the window)."""
+
+    __tablename__ = "login_attempts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), index=True)
+    attempted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    succeeded: Mapped[bool] = mapped_column(Boolean)
+
+
 class Ticker(Base):
     """Shared market-data identity for a symbol -- one row per ticker no
     matter how many users track it. Per-user fields (analysis note, trades,

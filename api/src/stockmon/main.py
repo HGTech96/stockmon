@@ -9,7 +9,8 @@ from fastapi.responses import JSONResponse
 from stockmon.api.deps import NotAuthenticatedError
 from stockmon.api.routes import auth, cash, portfolio, refresh, screener, settings, stocks, trades
 from stockmon.config import settings as app_settings
-from stockmon.services.auth_service import InvalidCredentialsError, UsernameTakenError
+from stockmon.services.auth_service import InvalidCredentialsError, TooManyAttemptsError, UsernameTakenError
+from stockmon.services.screener_service import ScreenerRefreshTooSoonError
 from stockmon.services.cash_service import CashNotFoundError, CashValidationError
 from stockmon.services.stock_service import StockAlreadyOnWatchlistError, StockNotFoundError, UnknownTickerError
 from stockmon.services.trade_service import TradeNotFoundError, TradeValidationError
@@ -91,6 +92,16 @@ def handle_invalid_credentials_error(request: Request, exc: InvalidCredentialsEr
 @app.exception_handler(UsernameTakenError)
 def handle_username_taken_error(request: Request, exc: UsernameTakenError) -> JSONResponse:
     return JSONResponse(status_code=409, content={"error": str(exc)})
+
+
+@app.exception_handler(TooManyAttemptsError)
+def handle_too_many_attempts_error(request: Request, exc: TooManyAttemptsError) -> JSONResponse:
+    return JSONResponse(status_code=429, content={"error": str(exc)})
+
+
+@app.exception_handler(ScreenerRefreshTooSoonError)
+def handle_screener_refresh_too_soon_error(request: Request, exc: ScreenerRefreshTooSoonError) -> JSONResponse:
+    return JSONResponse(status_code=429, content={"error": str(exc)})
 
 
 def main() -> None:

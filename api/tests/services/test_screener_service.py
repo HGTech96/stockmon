@@ -1,13 +1,18 @@
 from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
+import pytest
+
 from stockmon.core.market_data import DailyBar, MarketDataError, MarketDataProvider, Quote
 from stockmon.core.screener import ScreenerEvaluation
 from stockmon.db.models import ScreenerResult
 from stockmon.services import screener_service
 from stockmon.services.screener_service import (
+    MIN_REFRESH_INTERVAL_MINUTES,
     ScreenerFetchFailure,
+    ScreenerRefreshTooSoonError,
     ScreenerRow,
+    check_refresh_not_too_soon,
     fetch_and_evaluate_ticker,
     get_latest_screener_run,
     run_screener_batch,
@@ -186,3 +191,39 @@ def test_get_latest_screener_run_returns_rows_and_run_at(db) -> None:
     assert run.run_at == run_at
     assert len(run.rows) == 1
     assert run.rows[0].ticker == "AAA"
+
+
+def test_check_refresh_not_too_soon_passes_when_never_run(db) -> None:
+    check_refresh_not_too_soon(db)  # should not raise
+
+
+def test_check_refresh_not_too_soon_raises_within_the_window(db) -> None:
+    row = ScreenerRow(
+        ticker="AAA",
+        company_name="AAA Inc.",
+        evaluation=ScreenerEvaluation(
+            status="ok", current_price=Decimal(10), change_1d_pct=Decimal(1), change_7d_pct=Decimal(3),
+            suggestion_label="WAIT", conditions_met=1, conditions_total=4,
+            rsi=Decimal(50), price_vs_30d_avg_pct=Decimal(2), sharp_move=False,
+        ),
+    )
+    save_screener_run(db, [row], datetime.now(timezone.utc))
+
+    with pytest.raises(ScreenerRefreshTooSoonError):
+        check_refresh_not_too_soon(db)
+
+
+def test_check_refresh_not_too_soon_passes_once_the_window_elapses(db) -> None:
+    row = ScreenerRow(
+        ticker="AAA",
+        company_name="AAA Inc.",
+        evaluation=ScreenerEvaluation(
+            status="ok", current_price=Decimal(10), change_1d_pct=Decimal(1), change_7d_pct=Decimal(3),
+            suggestion_label="WAIT", conditions_met=1, conditions_total=4,
+            rsi=Decimal(50), price_vs_30d_avg_pct=Decimal(2), sharp_move=False,
+        ),
+    )
+    old_run_at = datetime.now(timezone.utc) - timedelta(minutes=MIN_REFRESH_INTERVAL_MINUTES, seconds=1)
+    save_screener_run(db, [row], old_run_at)
+
+    check_refresh_not_too_soon(db)  # should not raise

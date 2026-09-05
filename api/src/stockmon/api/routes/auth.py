@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from stockmon.api.deps import SESSION_COOKIE_NAME, get_current_user
 from stockmon.api.schemas.auth import LoginRequest, UserSchema
+from stockmon.config import settings as app_settings
 from stockmon.db.models import User as UserRow
 from stockmon.db.session import get_db
 from stockmon.services.auth_service import SESSION_LIFETIME, authenticate, create_session, delete_session
@@ -18,6 +19,7 @@ def login(body: LoginRequest, response: Response, db: Session = Depends(get_db))
         key=SESSION_COOKIE_NAME,
         value=session.id,
         httponly=True,
+        secure=app_settings.environment == "production",
         samesite="lax",
         max_age=int(SESSION_LIFETIME.total_seconds()),
     )

@@ -176,3 +176,19 @@ def test_post_screener_refresh_replaces_previous_run(client, db, monkeypatch) ->
     assert r.status_code == 200
     cached = client.get("/api/screener").json()
     assert [row["ticker"] for row in cached["results"]] == ["NEW"]
+
+
+def test_post_screener_refresh_too_soon_after_a_run_is_429(client, db, monkeypatch) -> None:
+    monkeypatch.setattr(screener_service, "read_screener_universe", lambda: ["AAA"])
+    provider = FakeProvider(history_by_ticker={"AAA": _bars(30)})
+    app.dependency_overrides[get_market_data_provider] = lambda: provider
+
+    try:
+        first = client.post("/api/screener/refresh")
+        second = client.post("/api/screener/refresh")
+    finally:
+        del app.dependency_overrides[get_market_data_provider]
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    assert set(second.json().keys()) == {"error"}

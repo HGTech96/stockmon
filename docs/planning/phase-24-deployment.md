@@ -115,36 +115,51 @@ MIN_REFRESH_INTERVAL_MINUTES = 15
 cached results) is completely unaffected — only the refresh trigger is
 guarded.
 
-## 24a — Security hardening
+## 24a — Security hardening ✅ done (except the last item, deferred to 24d)
 
 Scoped exactly to the Part 1 audit findings — no extra hardening invented.
 
-- [ ] Cookie `secure` flag driven by a new `ENVIRONMENT` setting
+- [x] Cookie `secure` flag driven by a new `ENVIRONMENT` setting
       (`config.py`), `True` only when `ENVIRONMENT=production`; `samesite`
-      stays `"lax"` (same-origin proxy architecture, decided)
-- [ ] `login_attempts` table + migration; `authenticate()` records every
-      attempt and enforces the 15-minute / 5-attempt sliding-window
-      lockout described above; new `TooManyAttemptsError` → `429` handler
-      in `main.py`
-- [ ] `scripts/reset_login_lockout.py` (new, mirrors `create_user.py`'s
-      shape: prompt/arg for username, clear that user's `login_attempts`
-      rows, print confirmation)
-- [ ] `_PBKDF2_ITERATIONS` raised to 600,000 (`auth_service.py`) —
+      stays `"lax"` (same-origin proxy architecture, decided). Verified
+      live: local login cookie has no `Secure` attribute; `Settings` with
+      `environment="production"` flips it
+- [x] `login_attempts` table (migration `91d69d85feee`) + `authenticate()`
+      records every attempt and enforces the 15-minute / 5-attempt
+      sliding-window lockout described above; new `TooManyAttemptsError` →
+      `429` handler in `main.py`. Verified live end to end: 5 wrong
+      passwords → `429` even with the correct password on the 6th try
+- [x] `scripts/reset_login_lockout.py` (new, mirrors `create_user.py`'s
+      shape: `<username>` arg, clears that username's `login_attempts`
+      rows, prints confirmation). Verified live: cleared the lockout above,
+      correct password then succeeded immediately
+- [x] `_PBKDF2_ITERATIONS` raised to 600,000 (`auth_service.py`) —
       existing hashes keep working since the count travels with each
       stored hash, no migration/rehash needed
-- [ ] `MIN_REFRESH_INTERVAL_MINUTES = 15` guard on
-      `POST /api/screener/refresh`, checked against the latest
-      `screener_results.run_at`; `GET /api/screener` unaffected
-- [ ] `fastapi`/`starlette` bumped to current releases; run the full test
-      suite after, skim changelogs for anything security-relevant
-- [ ] `npm audit fix` in `ui/` for `fast-uri`/`qs` (dev-only transitive
-      deps of `shadcn`, but the fix is free)
-- [ ] `scripts/reset_to_initial_state.py`: add a required `<username>` arg
-      and scope both deletes by that user's `id` (currently wipes every
-      user's trades/cash — pre-dates Phase 23b, found during this audit,
-      not web-exposed but a real local data-safety trap now)
+- [x] `MIN_REFRESH_INTERVAL_MINUTES = 15` guard on
+      `POST /api/screener/refresh` (`check_refresh_not_too_soon`, checked
+      against the latest `screener_results.run_at`); `GET /api/screener`
+      unaffected
+- [x] `fastapi` 0.115→0.141, `starlette` 0.46→1.6 — full test suite green
+      after (333 passed); no code changes needed beyond the version bump
+- [x] `npm audit fix` in `ui/` — `fast-uri`/`qs` resolved, 0 vulnerabilities
+      now; build/lint/vitest all still green
+- [x] `scripts/reset_to_initial_state.py`: now takes a required
+      `<username>` arg and scopes both deletes by that user's `id`
+      (previously wiped every user's trades/cash — pre-dates Phase 23b,
+      found during this audit, not web-exposed but a real local
+      data-safety trap)
 - [ ] Confirm the prod start command runs `uvicorn stockmon.main:app`
-      directly (no `--reload`, no dev entrypoint)
+      directly (no `--reload`, no dev entrypoint) — deferred to 24d, where
+      the Render start command is actually configured
+
+Tests: `test_auth_service.py` (+6 lockout/clear cases),
+`test_auth_route.py` (+1, `429` via the real endpoint),
+`test_screener_service.py` (+3, the interval guard), `test_screener_route.py`
+(+1, back-to-back refresh calls). Full suite: 333 passed.
+
+Also updated `docs/api-contract.md` (v1.18) and `.env.example` for the two
+new `429` cases and the `ENVIRONMENT` var.
 
 ## 24b — Config for prod
 

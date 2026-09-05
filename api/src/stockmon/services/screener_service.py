@@ -1,7 +1,7 @@
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -18,6 +18,18 @@ SCREENER_STOCKS_PATH = Path(__file__).resolve().parents[4] / "screener_stocks.tx
 # terminal job (scripts/run_screener.py) and the on-demand refresh endpoint.
 BATCH_SIZE = 10
 BATCH_PAUSE_SECONDS = 1.5
+
+# Only guards the on-demand POST /api/screener/refresh (unauthenticated,
+# public once deployed -- see docs/planning/phase-24-deployment.md); the
+# manual terminal job (scripts/run_screener.py) is never subject to this,
+# since it's already a deliberate, access-controlled (SSH/terminal) action.
+MIN_REFRESH_INTERVAL_MINUTES = 15
+
+
+class ScreenerRefreshTooSoonError(Exception):
+    def __init__(self, minutes_remaining: int) -> None:
+        self.minutes_remaining = minutes_remaining
+        super().__init__(f"Screener was just refreshed. Try again in {minutes_remaining} minute(s).")
 
 
 @dataclass(frozen=True)
@@ -145,3 +157,16 @@ def get_latest_screener_run(db: Session) -> ScreenerRun:
     if not rows:
         return ScreenerRun(run_at=None, rows=[])
     return ScreenerRun(run_at=rows[0].run_at, rows=rows)
+
+
+def check_refresh_not_too_soon(db: Session) -> None:
+    """Raises ScreenerRefreshTooSoonError if the last run was under
+    MIN_REFRESH_INTERVAL_MINUTES ago. Called by the route before starting
+    a new batch -- never run/never-run-yet always passes."""
+    run = get_latest_screener_run(db)
+    if run.run_at is None:
+        return
+    elapsed = datetime.now(timezone.utc) - run.run_at.astimezone(timezone.utc)
+    remaining = timedelta(minutes=MIN_REFRESH_INTERVAL_MINUTES) - elapsed
+    if remaining > timedelta(0):
+        raise ScreenerRefreshTooSoonError(minutes_remaining=int(remaining.total_seconds() // 60) + 1)

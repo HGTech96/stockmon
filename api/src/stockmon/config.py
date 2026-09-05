@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +14,9 @@ class Settings(BaseSettings):
 
     database_url: str
     ui_origin: str = "http://localhost:5173"
+    # Drives the session cookie's Secure flag only (see routes/auth.py) --
+    # local dev runs over http, production runs behind HTTPS on Render.
+    environment: Literal["local", "production"] = "local"
 
 
 settings = Settings()

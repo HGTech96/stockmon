@@ -9,7 +9,12 @@ from stockmon.core.market_data import MarketDataProvider
 from stockmon.db.session import get_db
 from stockmon.services.freshness_service import get_live_freshness, get_screener_freshness
 from stockmon.services.screener_detail_service import get_screener_stock_detail
-from stockmon.services.screener_service import get_latest_screener_run, run_screener_batch, save_screener_run
+from stockmon.services.screener_service import (
+    check_refresh_not_too_soon,
+    get_latest_screener_run,
+    run_screener_batch,
+    save_screener_run,
+)
 
 router = APIRouter()
 
@@ -26,6 +31,7 @@ def refresh_screener(
     db: Session = Depends(get_db),
     provider: MarketDataProvider = Depends(get_market_data_provider),
 ) -> ScreenerRefreshResponse:
+    check_refresh_not_too_soon(db)
     result = run_screener_batch(provider)
     save_screener_run(db, result.rows, result.run_at)
     return ScreenerRefreshResponse.from_core(result)

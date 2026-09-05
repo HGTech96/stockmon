@@ -1,4 +1,4 @@
-from stockmon.services.auth_service import create_user
+from stockmon.services.auth_service import LOGIN_LOCKOUT_MAX_ATTEMPTS, create_user
 
 USER_KEYS = {"id", "username", "email"}
 
@@ -59,3 +59,14 @@ def test_logout_clears_session(client, db) -> None:
 def test_logout_without_session_is_noop(client) -> None:
     r = client.post("/api/auth/logout")
     assert r.status_code == 204
+
+
+def test_login_locked_out_after_max_failed_attempts_returns_429(client, db) -> None:
+    create_user(db, "alice", "password123")
+    for _ in range(LOGIN_LOCKOUT_MAX_ATTEMPTS):
+        client.post("/api/auth/login", json={"username": "alice", "password": "wrong"})
+
+    r = client.post("/api/auth/login", json={"username": "alice", "password": "password123"})
+
+    assert r.status_code == 429
+    assert set(r.json().keys()) == {"error"}
