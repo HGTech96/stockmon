@@ -83,27 +83,34 @@ def _chunks(items: list[str], size: int) -> list[list[str]]:
 
 def run_screener_batch(provider: MarketDataProvider) -> ScreenerBatchResult:
     """Reads screener_stocks.txt and fetches+evaluates every ticker in
-    batches (ThreadPoolExecutor per batch, paused between batches). Shared
-    by scripts/run_screener.py and POST /api/screener/refresh so both
-    trigger paths run identical logic. Does not touch the DB -- caller
-    persists the result via save_screener_run."""
+    batches (paused between batches to stay easy on the provider), all
+    through ONE ThreadPoolExecutor for the whole run -- not one per batch.
+    yfinance's HTTP client and its local timezone-info cache both keep a
+    handle open per thread that's never explicitly closed; recreating the
+    pool (and its worker threads) every batch meant up to ~15 batches
+    worth of brand-new threads per run, each leaking a handle, which piled
+    up into the process's open-file limit over a run or two. Reusing one
+    pool caps that at BATCH_SIZE threads for the entire run. Shared by
+    scripts/run_screener.py and POST /api/screener/refresh so both trigger
+    paths run identical logic. Does not touch the DB -- caller persists
+    the result via save_screener_run."""
     tickers = read_screener_universe()
     rows: list[ScreenerRow] = []
     failures: list[ScreenerFetchFailure] = []
     batches = _chunks(tickers, BATCH_SIZE)
 
-    for i, batch in enumerate(batches):
-        with ThreadPoolExecutor(max_workers=len(batch)) as pool:
+    with ThreadPoolExecutor(max_workers=BATCH_SIZE) as pool:
+        for i, batch in enumerate(batches):
             for result in pool.map(lambda ticker: fetch_and_evaluate_ticker(provider, ticker), batch):
                 if isinstance(result, ScreenerRow):
                     rows.append(result)
                 else:
                     failures.append(result)
 
-        done = len(rows) + len(failures)
-        print(f"[{done}/{len(tickers)}] done")
-        if i < len(batches) - 1:
-            time.sleep(BATCH_PAUSE_SECONDS)
+            done = len(rows) + len(failures)
+            print(f"[{done}/{len(tickers)}] done")
+            if i < len(batches) - 1:
+                time.sleep(BATCH_PAUSE_SECONDS)
 
     return ScreenerBatchResult(rows=rows, failures=failures, run_at=datetime.now().astimezone())
 
